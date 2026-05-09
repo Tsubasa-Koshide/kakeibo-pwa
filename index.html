@@ -1239,6 +1239,20 @@ function rSettings(){
   const colorRow = SETTING_COLORS.map(c=>
     `<div class="set-color${myColor===c?' on':''}" style="background:${c}" onclick="SET.setColor('${c}')"></div>`
   ).join('');
+  const memberCards = Object.entries(membersMap)
+    .filter(([,m])=>m&&m.name)
+    .map(([role,m])=>{
+      const isMe=role===myRole;
+      const canDelete=myRole==='a'&&!isMe;
+      return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(26,26,26,.06)">
+        <div style="width:40px;height:40px;border-radius:50%;background:${m.color||'#e2dc54'};color:${isDk(m.color||'#e2dc54')?'#fff':'#1A1A1A'};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0">${m.name[0]}</div>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:600;color:var(--ink)">${m.name}${isMe?' (あなた)':''}</div>
+          <div style="font-size:11px;color:var(--ink2)">${role==='a'?'ホスト':'参加者'}</div>
+        </div>
+        ${canDelete?`<button onclick="SET.deleteMember('${role}')" style="background:rgba(244,92,39,.1);color:#f45c27;border:none;border-radius:20px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer">削除</button>`:''}
+      </div>`;
+    }).join('');
   document.getElementById('settings-body').innerHTML=`
     <div class="set-section">自分の情報</div>
     <div class="set-card">
@@ -1252,6 +1266,11 @@ function rSettings(){
       <div style="font-size:11px;font-weight:500;color:var(--ink2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.4px">アイコンカラー</div>
       <div class="set-color-row">${colorRow}</div>
     </div>
+
+    ${memberCards?`
+    <div class="set-section">メンバー${myRole==='a'?' (ホストはメンバーを削除できます)':''}</div>
+    <div class="set-card" style="padding:0 16px">${memberCards}</div>
+    `:''}
 
     <div class="set-section">パートナーを招待</div>
     <div class="set-card">
@@ -1335,6 +1354,27 @@ const SET = {
     if(navigator.share) navigator.share({title:'ふたりの家計簿',text:msg});
     else if(navigator.clipboard) navigator.clipboard.writeText(INVITE_CODE).then(()=>alert('コードをコピーしました: '+INVITE_CODE));
     else alert(msg);
+  },
+
+  async deleteMember(role){
+    if(!confirm('このメンバーを削除しますか？\n（削除後、そのデバイスからはアクセスできなくなります）')) return;
+    if(!householdId) return;
+    try {
+      const usersSnap=await fsdb().collection(`households/${householdId}/users`).get();
+      const targets=usersSnap.docs.filter(d=>d.data().role===role&&d.id!==deviceId);
+      await Promise.all(targets.map(d=>{
+        fsdb().doc(`users/${d.id}`).update({
+          householdId:firebase.firestore.FieldValue.delete(),
+          role:firebase.firestore.FieldValue.delete()
+        }).catch(()=>{});
+        return d.ref.delete();
+      }));
+      membersMap[role]={name:'',color:''};
+      rSettings(); upd();
+    } catch(e){
+      console.error(e);
+      alert('削除に失敗しました\n'+e.message);
+    }
   },
 
   async joinCode(){
