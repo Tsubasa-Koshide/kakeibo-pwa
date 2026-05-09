@@ -36,16 +36,10 @@ body{font-family:'Inter',system-ui,sans-serif;background:#EEECEA;min-height:100v
 #inner{border-radius:0;overflow:hidden;background:var(--bg);height:100dvh;width:100%;max-width:430px;margin:0 auto;display:flex;flex-direction:column;position:relative}
 .sb{display:none}
 
-/* ── Loading / Login ── */
+/* ── Loading ── */
 #loading-screen{position:absolute;inset:0;background:var(--bg);z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .loading-spinner{width:28px;height:28px;border:2.5px solid rgba(26,26,26,.1);border-top-color:var(--ink);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-#login-screen{position:absolute;inset:0;background:var(--bg);z-index:40;display:none;flex-direction:column;align-items:center;justify-content:center;padding:48px 28px;text-align:center}
-.login-logo{width:80px;height:80px;background:var(--lime);border-radius:24px;display:flex;align-items:center;justify-content:center;font-size:42px;margin:0 auto 24px;line-height:1}
-.login-title{font-size:26px;font-weight:700;color:var(--ink);letter-spacing:-.8px;margin-bottom:8px}
-.login-sub{font-size:13px;color:var(--ink2);line-height:1.7;margin-bottom:40px}
-.google-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:15px 20px;background:#fff;border:1.5px solid rgba(26,26,26,.12);border-radius:14px;font-size:15px;font-weight:600;color:var(--ink);cursor:pointer;font-family:inherit;box-shadow:0 2px 10px rgba(0,0,0,.07);transition:transform .12s}
-.google-btn:active{transform:scale(.97)}
 
 /* ── Header ── */
 .hd{padding:8px 20px 12px;flex-shrink:0}
@@ -263,18 +257,6 @@ nav{display:flex;align-items:flex-start;background:var(--bg);border-top:.5px sol
     <!-- Loading -->
     <div id="loading-screen"><div class="loading-spinner"></div></div>
 
-    <!-- Login -->
-    <div id="login-screen">
-      <div class="login-logo">☺</div>
-      <div class="login-title">ふたりの家計簿</div>
-      <div class="login-sub">メールアドレスだけで使えます。<br>パスワード不要。</div>
-      <input type="email" id="login-email" class="ob-input" placeholder="メールアドレスを入力"
-        style="margin-bottom:12px;text-align:left"
-        onkeydown="if(event.key==='Enter')submitEmail()">
-      <button class="ob-btn" onclick="submitEmail()" style="margin-top:0">はじめる →</button>
-      <div id="login-error" style="font-size:12px;color:var(--tang);margin-top:10px;min-height:16px"></div>
-    </div>
-
     <!-- Status bar (hidden) -->
     <div class="sb">
       <span>9:41</span>
@@ -373,16 +355,21 @@ let fx = [], ent = [], memos = [];
 let mT='expense', mP='a', mWho='a', selDay=null, currentTab='home';
 
 /* ── Session State ── */
-const LS_KEY     = 'kakeibo_email';
-let currentEmail = localStorage.getItem(LS_KEY) || null;
-let householdId  = null;
-let myRole       = 'a';
-let myName       = '';
-let myColor      = '#e2dc54';
-let INVITE_CODE  = '';
-let membersMap   = { a:{name:'私',color:'#e2dc54'}, b:{name:'パートナー',color:'#add0ee'} };
+const LS_KEY    = 'kakeibo_device_id';
+let deviceId    = localStorage.getItem(LS_KEY) || null;
+let householdId = null;
+let myRole      = 'a';
+let myName      = '';
+let myColor     = '#e2dc54';
+let INVITE_CODE = '';
+let membersMap  = { a:{name:'私',color:'#e2dc54'}, b:{name:'パートナー',color:'#add0ee'} };
 let unsubscribers = [];
-let obCreating   = false;
+let obCreating  = false;
+
+function generateDeviceId(){
+  try { return crypto.randomUUID(); } catch(_){}
+  return 'dev-' + Date.now() + '-' + Math.random().toString(36).slice(2,10);
+}
 
 /* ── Month state ── */
 const NOW = new Date();
@@ -423,7 +410,6 @@ function upd(){
 /* ── Screen management ── */
 function showScreen(name){
   document.getElementById('loading-screen').style.display = name==='loading' ? 'flex' : 'none';
-  document.getElementById('login-screen').style.display   = name==='login'   ? 'flex' : 'none';
   const ob=document.getElementById('onboarding');
   ob.style.display = name==='onboarding' ? 'flex' : 'none';
   ob.style.opacity = '1';
@@ -811,24 +797,10 @@ function subscribeToHousehold(){
 }
 
 /* ── Auth ── */
-function submitEmail(){
-  const input = document.getElementById('login-email');
-  const errEl = document.getElementById('login-error');
-  const email = input ? input.value.trim().toLowerCase() : '';
-  if(!email || !email.includes('@')){
-    if(errEl) errEl.textContent = '正しいメールアドレスを入力してください';
-    return;
-  }
-  if(errEl) errEl.textContent = '';
-  localStorage.setItem(LS_KEY, email);
-  currentEmail = email;
-  loadUser(email);
-}
-
-async function loadUser(email){
+async function loadUser(did){
   showScreen('loading');
   try {
-    const userDoc = await fsdb().doc(`users/${email}`).get();
+    const userDoc = await fsdb().doc(`users/${did}`).get();
     if(!userDoc.exists){
       showScreen('onboarding'); obSetStep(0); return;
     }
@@ -844,26 +816,24 @@ async function loadUser(email){
     showScreen('app'); upd(); rHome();
   } catch(e){
     console.error('loadUser error:', e);
-    showScreen('login');
+    showScreen('onboarding'); obSetStep(0);
   }
 }
 
 function doSignOut(){
-  if(!confirm('ログアウトしますか？'))return;
+  if(!confirm('このデバイスのデータをリセットしますか？'))return;
   unsubscribers.forEach(u=>u()); unsubscribers=[];
   localStorage.removeItem(LS_KEY);
-  currentEmail = null;
-  showScreen('login');
+  deviceId = null; householdId = null;
+  showScreen('onboarding'); obSetStep(0);
 }
 
 /* ── Onboarding ── */
 let obStep=0, obInviteTab='invite';
 
 function generateCode(){
-  const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let s=''; for(let i=0;i<4;i++) s+=c[Math.floor(Math.random()*c.length)];
-  s+='-'; for(let i=0;i<2;i++) s+=c[Math.floor(Math.random()*c.length)];
-  return s;
+  // 6桁の数字コード
+  return String(Math.floor(100000 + Math.random() * 900000));
 }
 
 function obSetStep(n){
@@ -915,7 +885,7 @@ function obStep1(){ return `
   ` : `
     <div style="margin-bottom:16px">
       <div style="font-size:11px;font-weight:600;color:var(--ink2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">招待コードを入力</div>
-      <input class="ob-input" id="ob-code" placeholder="XXXX-XX" maxlength="7" style="font-size:20px;font-weight:600;letter-spacing:4px;text-align:center">
+      <input class="ob-input" id="ob-code" placeholder="123456" maxlength="6" type="number" inputmode="numeric" style="font-size:24px;font-weight:600;letter-spacing:8px;text-align:center">
     </div>
     <button class="ob-btn" onclick="OB.joinCode()">参加する</button>
     <button class="ob-btn-sub" onclick="OB.invTab('invite')">← 招待コードを送る</button>
@@ -944,11 +914,16 @@ const OB = {
   async next0(){
     const n=document.getElementById('ob-name');
     myName=(n?n.value.trim():'')||'あなた';
-    if(!currentEmail){ obSetStep(1); return; }
+
+    // デバイスIDがなければ生成
+    if(!deviceId){
+      deviceId=generateDeviceId();
+      localStorage.setItem(LS_KEY, deviceId);
+    }
 
     document.getElementById('ob-body').innerHTML=`<div style="text-align:center;padding:60px;color:var(--ink2);font-size:13px">準備中…</div>`;
     try {
-      await fsdb().doc(`users/${currentEmail}`).set({name:myName,color:myColor,email:currentEmail},{merge:true});
+      await fsdb().doc(`users/${deviceId}`).set({name:myName,color:myColor,deviceId},{merge:true});
       if(!householdId) await OB._createHousehold();
     } catch(e){ console.error(e); }
     obSetStep(1);
@@ -960,14 +935,14 @@ const OB = {
       const code=generateCode();
       const hRef=await fsdb().collection('households').add({
         inviteCode:code,
-        members:[currentEmail],
+        members:[deviceId],
         createdAt:firebase.firestore.FieldValue.serverTimestamp()
       });
       householdId=hRef.id; INVITE_CODE=code;
       await fsdb().doc(`inviteCodes/${code}`).set({householdId});
       myRole='a';
-      await fsdb().doc(`users/${currentEmail}`).set({householdId,role:'a'},{merge:true});
-      await fsdb().doc(`households/${householdId}/users/${currentEmail}`).set({name:myName,color:myColor,role:'a',email:currentEmail});
+      await fsdb().doc(`users/${deviceId}`).set({householdId,role:'a'},{merge:true});
+      await fsdb().doc(`households/${householdId}/users/${deviceId}`).set({name:myName,color:myColor,role:'a',deviceId});
     } finally { obCreating=false; }
   },
 
@@ -982,16 +957,16 @@ const OB = {
 
   async joinCode(){
     const c=document.getElementById('ob-code');
-    const code=(c?c.value.trim().toUpperCase():'');
-    if(!code||code.replace('-','').length<4){ if(c)c.style.background='rgba(244,92,39,.15)'; return; }
+    const code=(c?c.value.trim():'');
+    if(!code||code.length<6){ if(c)c.style.background='rgba(244,92,39,.15)'; return; }
     try {
       const codeDoc=await fsdb().doc(`inviteCodes/${code}`).get();
       if(!codeDoc.exists){ if(c)c.style.background='rgba(244,92,39,.15)'; alert('招待コードが見つかりません'); return; }
       const hId=codeDoc.data().householdId;
       householdId=hId; INVITE_CODE=code; myRole='b';
-      await fsdb().doc(`users/${currentEmail}`).set({householdId:hId,role:'b'},{merge:true});
-      await fsdb().doc(`households/${hId}/users/${currentEmail}`).set({name:myName,color:myColor,role:'b',email:currentEmail});
-      await fsdb().doc(`households/${hId}`).update({members:firebase.firestore.FieldValue.arrayUnion(currentEmail)});
+      await fsdb().doc(`users/${deviceId}`).set({householdId:hId,role:'b'},{merge:true});
+      await fsdb().doc(`households/${hId}/users/${deviceId}`).set({name:myName,color:myColor,role:'b',deviceId});
+      await fsdb().doc(`households/${hId}`).update({members:firebase.firestore.FieldValue.arrayUnion(deviceId)});
       obSetStep(2);
     } catch(e){ console.error(e); alert('エラーが発生しました'); }
   },
@@ -1013,10 +988,10 @@ const OB = {
 /* ── App init ── */
 async function initApp(){
   firebase.initializeApp(firebaseConfig);
-  if(currentEmail){
-    await loadUser(currentEmail);
+  if(deviceId){
+    await loadUser(deviceId);
   } else {
-    showScreen('login');
+    showScreen('onboarding'); obSetStep(0);
   }
 }
 
