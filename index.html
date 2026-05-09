@@ -248,6 +248,21 @@ nav{display:flex;align-items:flex-start;background:var(--bg);border-top:.5px sol
 .ob-tab.on{background:var(--ink);color:#fff}
 .ob-avatar-row{display:flex;align-items:center;gap:12px;padding:12px 14px;background:rgba(26,26,26,.05);border-radius:14px;margin-bottom:10px}
 .ob-avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0}
+
+/* ── Settings ── */
+#settings{position:absolute;inset:0;background:var(--bg);z-index:15;display:none;flex-direction:column;overflow:hidden}
+.set-header{padding:14px 16px 12px;display:flex;align-items:center;gap:6px;flex-shrink:0}
+.set-back{background:none;border:none;cursor:pointer;font-size:22px;padding:4px 8px;color:var(--ink);font-family:inherit;line-height:1}
+.set-title{font-size:18px;font-weight:600;color:var(--ink)}
+.set-body{flex:1;overflow-y:auto;padding:0 16px 24px;-webkit-overflow-scrolling:touch}
+.set-body::-webkit-scrollbar{display:none}
+.set-section{font-size:11px;font-weight:600;color:var(--ink2);text-transform:uppercase;letter-spacing:.5px;margin:8px 4px 10px}
+.set-card{background:rgba(255,255,255,.6);border-radius:18px;padding:16px;margin-bottom:18px}
+.set-color-row{display:flex;gap:10px;flex-wrap:wrap}
+.set-color{width:34px;height:34px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:border .15s}
+.set-color.on{border-color:var(--ink)}
+.set-code{font-size:32px;font-weight:700;letter-spacing:8px;text-align:center;margin:12px 0;font-variant-numeric:tabular-nums;color:var(--ink)}
+.set-logout{width:100%;padding:14px;background:none;border:none;color:var(--tang);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left}
 </style>
 </head>
 <body>
@@ -275,7 +290,7 @@ nav{display:flex;align-items:flex-start;background:var(--bg);border-top:.5px sol
             <span class="period-label" id="period-btn">読込中…</span>
             <button class="period-arrow" onclick="K.nextMonth()">›</button>
           </div>
-          <button class="logout-btn" onclick="doSignOut()">ログアウト</button>
+          <button class="logout-btn" onclick="SET.open()">設定</button>
         </div>
       </div>
       <div style="font-size:11px;font-weight:400;color:var(--ink2);letter-spacing:.3px">Expenses</div>
@@ -314,6 +329,15 @@ nav{display:flex;align-items:flex-start;background:var(--bg);border-top:.5px sol
 
     <div id="backdrop" onclick="K.closeModal()"></div>
     <div id="modal"><div class="modal-handle"></div><div class="modal-inner"><div class="modal-title">支出を登録</div><div id="modal-body"></div></div></div>
+
+    <!-- Settings -->
+    <div id="settings">
+      <div class="set-header">
+        <button class="set-back" onclick="SET.close()">←</button>
+        <div class="set-title">設定</div>
+      </div>
+      <div id="settings-body" class="set-body"></div>
+    </div>
 
     <!-- Onboarding -->
     <div id="onboarding">
@@ -864,7 +888,10 @@ function doSignOut(){
   if(!confirm('このデバイスのデータをリセットしますか？'))return;
   unsubscribers.forEach(u=>u()); unsubscribers=[];
   localStorage.removeItem(LS_KEY);
-  deviceId = null; householdId = null;
+  deviceId = null; householdId = null; INVITE_CODE = '';
+  myName = ''; myColor = '#e2dc54'; myRole = 'a';
+  ent=[]; fx=[]; memos=[];
+  document.getElementById('settings').style.display='none';
   showScreen('onboarding'); obSetStep(0);
 }
 
@@ -954,7 +981,12 @@ function obStep2(){ return `
 `;}
 
 const OB = {
-  setMyColor(c){ myColor=c; obSetStep(0); },
+  setMyColor(c){
+    const n=document.getElementById('ob-name');
+    if(n) myName=n.value;
+    myColor=c;
+    obSetStep(0);
+  },
 
   async next0(){
     const n=document.getElementById('ob-name');
@@ -1047,6 +1079,141 @@ const OB = {
     else if(myRole==='b'&&avB){ avB.textContent=myName?myName[0]:'彼'; avB.style.background=myColor; avB.style.color=isDk(myColor)?'#fff':'#1A1A1A'; }
     showScreen('app');
     upd(); rHome();
+  }
+};
+
+/* ── Settings ── */
+const SETTING_COLORS = ['#e2dc54','#266433','#dfefca','#032f98','#f45c27','#add0ee','#6d2d59','#d1c4e9'];
+
+function rSettings(){
+  const colorRow = SETTING_COLORS.map(c=>
+    `<div class="set-color${myColor===c?' on':''}" style="background:${c}" onclick="SET.setColor('${c}')"></div>`
+  ).join('');
+  document.getElementById('settings-body').innerHTML=`
+    <div class="set-section">自分の情報</div>
+    <div class="set-card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
+        <div style="width:48px;height:48px;border-radius:50%;background:${myColor};color:${isDk(myColor)?'#fff':'#1A1A1A'};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700">${myName?myName[0]:'?'}</div>
+        <div>
+          <div style="font-size:15px;font-weight:600;color:var(--ink)">${myName||'(未設定)'}</div>
+          <div style="font-size:11px;color:var(--ink2);margin-top:2px">${myRole==='a'?'ホスト':'参加者'}</div>
+        </div>
+      </div>
+      <div style="font-size:11px;font-weight:500;color:var(--ink2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.4px">アイコンカラー</div>
+      <div class="set-color-row">${colorRow}</div>
+    </div>
+
+    <div class="set-section">パートナーを招待</div>
+    <div class="set-card">
+      ${INVITE_CODE?`
+        <div style="font-size:11px;font-weight:600;color:var(--ink2);margin-bottom:4px">あなたの招待コード</div>
+        <div class="set-code">${INVITE_CODE}</div>
+        <button class="ob-share-btn" onclick="SET.share()" style="margin-top:8px;margin-bottom:0">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          共有する
+        </button>
+        <button class="ob-btn-sub" onclick="SET.issueCode(true)">新しいコードを発行</button>
+      `:`
+        <div style="font-size:12px;color:var(--ink2);margin-bottom:14px;line-height:1.5">招待コードを発行してパートナーに送ると、同じ家計簿を共有できます。</div>
+        <button class="ob-btn" onclick="SET.issueCode(false)">招待コードを発行する</button>
+      `}
+    </div>
+
+    <div class="set-section">他の家計簿に参加</div>
+    <div class="set-card">
+      <div style="font-size:12px;color:var(--ink2);margin-bottom:12px;line-height:1.5">パートナーから受け取った招待コードを入力してください。</div>
+      <input class="ob-input" id="set-join-code" placeholder="123456" maxlength="6" type="number" inputmode="numeric" style="font-size:22px;font-weight:600;letter-spacing:6px;text-align:center;margin-bottom:0">
+      <button class="ob-btn" onclick="SET.joinCode()">参加する</button>
+    </div>
+
+    <div class="set-section">アカウント</div>
+    <div class="set-card" style="padding:8px 16px">
+      <button class="set-logout" onclick="doSignOut()">ログアウト</button>
+    </div>
+  `;
+}
+
+const SET = {
+  open(){
+    rSettings();
+    document.getElementById('settings').style.display='flex';
+  },
+
+  close(){
+    document.getElementById('settings').style.display='none';
+  },
+
+  async setColor(c){
+    myColor=c;
+    if(membersMap[myRole]) membersMap[myRole].color=c;
+    const av=document.getElementById('av-'+myRole);
+    if(av){ av.style.background=c; av.style.color=isDk(c)?'#fff':'#1A1A1A'; }
+    rSettings();
+    try {
+      if(deviceId) await fsdb().doc(`users/${deviceId}`).set({color:c},{merge:true});
+      if(householdId && deviceId) await fsdb().doc(`households/${householdId}/users/${deviceId}`).set({color:c},{merge:true});
+    } catch(e){ console.error(e); }
+  },
+
+  async issueCode(isReissue){
+    if(isReissue && !confirm('新しい招待コードを発行しますか？\n（古いコードは使えなくなります）')) return;
+    const btns=document.querySelectorAll('#settings-body button');
+    btns.forEach(b=>{b.disabled=true;b.style.opacity='.5';});
+    try {
+      const oldCode=INVITE_CODE;
+      if(!householdId){
+        await OB._createHousehold();
+      } else {
+        const code=generateCode();
+        await fsdb().doc(`households/${householdId}`).update({inviteCode:code});
+        await fsdb().doc(`inviteCodes/${code}`).set({householdId});
+        if(oldCode && oldCode!==code){
+          await fsdb().doc(`inviteCodes/${oldCode}`).delete().catch(()=>{});
+        }
+        INVITE_CODE=code;
+      }
+      rSettings();
+    } catch(e){
+      console.error(e);
+      btns.forEach(b=>{b.disabled=false;b.style.opacity='1';});
+      alert('エラーが発生しました');
+    }
+  },
+
+  share(){
+    const msg=`ふたりの家計簿への招待コード: ${INVITE_CODE}`;
+    if(navigator.share) navigator.share({title:'ふたりの家計簿',text:msg});
+    else if(navigator.clipboard) navigator.clipboard.writeText(INVITE_CODE).then(()=>alert('コードをコピーしました: '+INVITE_CODE));
+    else alert(msg);
+  },
+
+  async joinCode(){
+    const c=document.getElementById('set-join-code');
+    const code=(c?c.value.trim():'');
+    if(!code||code.length<6){ if(c)c.style.background='rgba(244,92,39,.15)'; return; }
+    if(householdId && !confirm('現在の家計簿から離脱して、別の家計簿に参加しますか？')) return;
+    try {
+      const codeDoc=await fsdb().doc(`inviteCodes/${code}`).get();
+      if(!codeDoc.exists){
+        if(c)c.style.background='rgba(244,92,39,.15)';
+        alert('招待コードが見つかりません');
+        return;
+      }
+      const hId=codeDoc.data().householdId;
+      unsubscribers.forEach(u=>u()); unsubscribers=[];
+      householdId=hId; INVITE_CODE=code; myRole='b';
+      mP=myRole; mWho=myRole;
+      await fsdb().doc(`users/${deviceId}`).set({householdId:hId,role:'b'},{merge:true});
+      await fsdb().doc(`households/${hId}/users/${deviceId}`).set({name:myName,color:myColor,role:'b',deviceId},{merge:true});
+      await fsdb().doc(`households/${hId}`).update({members:firebase.firestore.FieldValue.arrayUnion(deviceId)});
+      const hDoc=await fsdb().doc(`households/${hId}`).get();
+      if(hDoc.exists) INVITE_CODE=hDoc.data().inviteCode||code;
+      ent=[]; fx=[]; memos=[];
+      subscribeToHousehold();
+      upd(); rHome();
+      rSettings();
+      alert('家計簿に参加しました！');
+    } catch(e){ console.error(e); alert('エラーが発生しました'); }
   }
 };
 
