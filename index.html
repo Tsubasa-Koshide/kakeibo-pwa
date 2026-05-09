@@ -678,7 +678,9 @@ function rFixed(){
 function rModal(editEntry=null){
   const isEdit=!!editEntry;
   const opts=userCats.map(c=>`<option${editEntry&&editEntry.cat===c?' selected':''}>${c}</option>`).join('');
-  const t=new Date(), todayStr=`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+  const n=new Date();
+  const todayStr=`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
+  const selDayStr=selDay?`${viewYear}-${String(viewMonth).padStart(2,'0')}-${String(selDay).padStart(2,'0')}`:todayStr;
   const nA=nameOf('a'), nB=nameOf('b');
   const titleEl=document.querySelector('.modal-title');
   if(titleEl) titleEl.textContent=isEdit?'記録を編集':'支出を登録';
@@ -693,7 +695,7 @@ function rModal(editEntry=null){
     </div>
     <div class="irow"><label>金額（円）</label><input type="number" id="ma" placeholder="0" value="${isEdit?editEntry.amount:''}" style="font-size:22px;font-weight:500;letter-spacing:-1px"></div>
     <div class="g2">
-      <div class="irow"><label>日付</label><input type="date" id="md" value="${isEdit?editEntry.date:todayStr}"></div>
+      <div class="irow"><label>日付</label><input type="date" id="md" value="${isEdit?editEntry.date:selDayStr}"></div>
       <div class="irow"><label>カテゴリ</label><select id="mc">${opts}</select></div>
     </div>
     <div class="irow"><label>メモ</label><input type="text" id="mn" placeholder="内容を入力" value="${isEdit?editEntry.note.replace(/"/g,'&quot;'):''}"></div>
@@ -751,7 +753,16 @@ const K = {
   closeModal(){ document.getElementById('modal').classList.remove('open'); document.getElementById('backdrop').classList.remove('open'); },
   mt(t){ const v=_saveModal(); mT=t; rModal(); _restoreModal(v); },
   mp(p){ const v=_saveModal(); mP=p; rModal(); _restoreModal(v); },
-  addCat(){ const el=document.getElementById('nc'), name=el.value.trim(); if(!name||userCats.includes(name))return; userCats.push(name); el.value=''; rModal(); },
+  addCat(){
+    const el=document.getElementById('nc'), name=el.value.trim();
+    if(!name||userCats.includes(name))return;
+    userCats.push(name);
+    const v=_saveModal();
+    rModal();
+    _restoreModal(v);
+    const mc=document.getElementById('mc');
+    if(mc) mc.value=name;
+  },
 
   addEnt(){
     const amt=parseInt(document.getElementById('ma').value||0);
