@@ -35,6 +35,18 @@ body{font-family:'Inter',system-ui,sans-serif;background:#EEECEA;min-height:100v
 #phone{width:100%;background:var(--bg);border-radius:0;padding:0;box-shadow:none}
 #inner{border-radius:0;overflow:hidden;background:var(--bg);height:100dvh;width:100%;max-width:430px;margin:0 auto;display:flex;flex-direction:column;position:relative}
 .sb{display:none}
+
+/* ── Loading / Login ── */
+#loading-screen{position:absolute;inset:0;background:var(--bg);z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.loading-spinner{width:28px;height:28px;border:2.5px solid rgba(26,26,26,.1);border-top-color:var(--ink);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#login-screen{position:absolute;inset:0;background:var(--bg);z-index:40;display:none;flex-direction:column;align-items:center;justify-content:center;padding:48px 28px;text-align:center}
+.login-logo{width:80px;height:80px;background:var(--lime);border-radius:24px;display:flex;align-items:center;justify-content:center;font-size:42px;margin:0 auto 24px;line-height:1}
+.login-title{font-size:26px;font-weight:700;color:var(--ink);letter-spacing:-.8px;margin-bottom:8px}
+.login-sub{font-size:13px;color:var(--ink2);line-height:1.7;margin-bottom:40px}
+.google-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:15px 20px;background:#fff;border:1.5px solid rgba(26,26,26,.12);border-radius:14px;font-size:15px;font-weight:600;color:var(--ink);cursor:pointer;font-family:inherit;box-shadow:0 2px 10px rgba(0,0,0,.07);transition:transform .12s}
+.google-btn:active{transform:scale(.97)}
+
 /* ── Header ── */
 .hd{padding:8px 20px 12px;flex-shrink:0}
 .top-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
@@ -42,7 +54,9 @@ body{font-family:'Inter',system-ui,sans-serif;background:#EEECEA;min-height:100v
 .av{width:38px;height:38px;border-radius:50%;border:3px solid var(--bg);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0}
 .av-a{background:var(--lime);color:var(--ink);margin-right:-10px;z-index:2}
 .av-b{background:var(--sky);color:var(--ink)}
+.hd-right{display:flex;align-items:center;gap:8px}
 .period{display:flex;align-items:center;gap:4px;font-size:12px;font-weight:500;color:var(--ink2);background:rgba(26,26,26,.07);padding:6px 12px;border-radius:20px;border:none;font-family:inherit;cursor:pointer}
+.logout-btn{font-size:11px;font-weight:500;color:var(--ink3);background:none;border:none;cursor:pointer;padding:6px 8px;font-family:inherit}
 .htitle{font-size:42px;font-weight:500;color:var(--ink);letter-spacing:-2px;line-height:1;margin:0 0 6px}
 .hsub{font-size:12px;color:var(--ink2);font-weight:400;display:flex;gap:16px}
 .hsub b{color:var(--ink);font-weight:600}
@@ -59,7 +73,7 @@ nav{display:flex;align-items:flex-start;background:var(--bg);border-top:.5px sol
 .plus-btn:active{transform:scale(.92)}
 
 /* ── Modal ── */
-#backdrop{position:absolute;inset:0;background:rgba(26,26,26,.5);z-index:9;opacity:0;pointer-events:none;transition:opacity .25s;border-radius:38px}
+#backdrop{position:absolute;inset:0;background:rgba(26,26,26,.5);z-index:9;opacity:0;pointer-events:none;transition:opacity .25s;border-radius:0}
 #backdrop.open{opacity:1;pointer-events:all}
 #modal{position:absolute;bottom:0;left:0;right:0;background:var(--bg);border-radius:24px 24px 0 0;z-index:10;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1);overflow-y:auto;padding:0 0 40px}
 #modal.open{transform:translateY(0)}
@@ -106,7 +120,7 @@ nav{display:flex;align-items:flex-start;background:var(--bg);border-top:.5px sol
 .cal-amt{font-size:8.5px;font-weight:500;color:var(--ink2);margin-top:1px;text-align:center}
 .day-header{font-size:11px;font-weight:600;color:var(--ink2);text-transform:uppercase;letter-spacing:.5px;margin:4px 0 8px;padding:0 2px}
 
-/* ── Memo cards (image-1 style) ── */
+/* ── Memo cards ── */
 .memo-cards-section{margin-bottom:12px}
 .section-label{font-size:10px;font-weight:600;color:var(--ink2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding:0 2px}
 .memo-cards-scroll{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 10px;-webkit-overflow-scrolling:touch}
@@ -215,7 +229,7 @@ nav{display:flex;align-items:flex-start;background:var(--bg);border-top:.5px sol
 .fbox .ftitle{font-size:10px;font-weight:600;color:var(--ink2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
 
 /* ── Onboarding ── */
-#onboarding{position:absolute;inset:0;background:var(--bg);z-index:20;border-radius:38px;display:flex;flex-direction:column;overflow:hidden}
+#onboarding{position:absolute;inset:0;background:var(--bg);z-index:20;border-radius:0;display:none;flex-direction:column;overflow:hidden}
 .ob-header{padding:56px 24px 0;flex-shrink:0}
 .ob-step{display:flex;gap:6px;margin-bottom:20px}
 .ob-dot{width:6px;height:6px;border-radius:50%;background:rgba(26,26,26,.15);transition:all .3s}
@@ -242,6 +256,27 @@ nav{display:flex;align-items:flex-start;background:var(--bg);border-top:.5px sol
 <body>
 <div id="phone">
   <div id="inner">
+
+    <!-- Loading -->
+    <div id="loading-screen"><div class="loading-spinner"></div></div>
+
+    <!-- Login -->
+    <div id="login-screen">
+      <div class="login-logo">☺</div>
+      <div class="login-title">ふたりの家計簿</div>
+      <div class="login-sub">ふたりで使うシンプルな家計簿。<br>Googleアカウントでログインしてください。</div>
+      <button class="google-btn" onclick="signInWithGoogle()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        </svg>
+        Googleでログイン
+      </button>
+    </div>
+
+    <!-- Status bar (hidden) -->
     <div class="sb">
       <span>9:41</span>
       <span style="display:flex;gap:5px;align-items:center">
@@ -249,21 +284,27 @@ nav{display:flex;align-items:flex-start;background:var(--bg);border-top:.5px sol
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="11" rx="2"/><path d="M22 11V9"/></svg>
       </span>
     </div>
+
     <div class="hd">
       <div class="top-row">
         <div class="avs"><div class="av av-a" id="av-a">私</div><div class="av av-b" id="av-b">彼</div></div>
-        <button class="period">2026年5月 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <div class="hd-right">
+          <button class="period" id="period-btn">読込中…</button>
+          <button class="logout-btn" onclick="doSignOut()">ログアウト</button>
+        </div>
       </div>
       <div style="font-size:11px;font-weight:400;color:var(--ink2);letter-spacing:.3px">Expenses</div>
       <div class="htitle" id="ttl">¥0</div>
-      <div class="hsub"><span>私 <b id="ka">¥0</b></span><span>パートナー <b id="kb">¥0</b></span></div>
+      <div class="hsub" id="hsub"><span>私 <b id="ka">¥0</b></span><span>パートナー <b id="kb">¥0</b></span></div>
     </div>
+
     <div class="body">
       <div id="t-home"></div>
       <div id="t-fixed"  style="display:none;padding-bottom:8px"></div>
       <div id="t-settle" style="display:none;padding-bottom:8px"></div>
       <div id="t-memo"   style="display:none;padding-bottom:8px"></div>
     </div>
+
     <nav>
       <button class="tab-btn on" onclick="K.tab('home',this)">
         <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -285,10 +326,11 @@ nav{display:flex;align-items:flex-start;background:var(--bg);border-top:.5px sol
         メモ
       </button>
     </nav>
+
     <div id="backdrop" onclick="K.closeModal()"></div>
     <div id="modal"><div class="modal-handle"></div><div class="modal-inner"><div class="modal-title">支出を登録</div><div id="modal-body"></div></div></div>
 
-    <!-- ── Onboarding ── -->
+    <!-- Onboarding -->
     <div id="onboarding">
       <div class="ob-header">
         <div style="font-size:22px;font-weight:700;color:var(--ink);letter-spacing:-.5px;margin-bottom:16px">ふたりの家計簿</div>
@@ -296,8 +338,15 @@ nav{display:flex;align-items:flex-start;background:var(--bg);border-top:.5px sol
       </div>
       <div class="ob-body" id="ob-body"></div>
     </div>
+
   </div>
 </div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
 
 <script>
 /* ── Palette ── */
@@ -308,82 +357,111 @@ const FICON = {食費:'🍽',住居費:'🏠',交通費:'🚃',光熱費:'💡',
 const LAST_MONTH = {食費:9000,交通費:3000,娯楽:12000,医療:0,その他:2000};
 
 const fmt  = n => '¥' + Math.round(n).toLocaleString('ja-JP');
-const fmtK = n => n>=10000 ? Math.round(n/1000)+'k' : n>=1000 ? (n/1000).toFixed(1)+'k' : String(n);
 const isDk = c => DK.includes(c);
 const col  = i => COLS[i % COLS.length];
 function getCatCol(c){ return CAT_COL[c] || (()=>{ const h=c.split('').reduce((a,x)=>a+x.charCodeAt(0),0); return COLS[h%COLS.length]; })(); }
 function tc(bg){ return isDk(bg) ? '#fff' : '#1A1A1A'; }
 function chipBg(bg){ return isDk(bg) ? 'rgba(255,255,255,.18)' : 'rgba(26,26,26,.1)'; }
+function nameOf(role){ return (membersMap[role] && membersMap[role].name) || (role==='a' ? '私' : 'パートナー'); }
+function initialOf(role){ const n=nameOf(role); return n ? n[0] : (role==='a'?'私':'彼'); }
 
+/* ── App State ── */
 let userCats = ['食費','住居費','交通費','光熱費','娯楽','医療','その他'];
-let fx = [
-  {id:'f1',name:'家賃',          amount:85000,cat:'住居費',who:'a',day:1, on:true},
-  {id:'f2',name:'電気・ガス・水道',amount:12000,cat:'光熱費',who:'b',day:1, on:true},
-  {id:'f3',name:'サブスク（動画）',amount:1980, cat:'娯楽',  who:'a',day:5, on:true},
-  {id:'f4',name:'スマホ代',       amount:3500, cat:'その他',who:'b',day:10,on:true},
-];
-let ent = [
-  {id:'e1',amount:3500, cat:'医療',  note:'薬局',     date:'05/03',who:'a'},
-  {id:'e2',amount:8500, cat:'娯楽',  note:'映画・書籍',date:'05/04',who:'b'},
-  {id:'e3',amount:7800, cat:'食費',  note:'外食',     date:'05/05',who:'a'},
-  {id:'e4',amount:1500, cat:'交通費',note:'電車',     date:'05/06',who:'b'},
-  {id:'e5',amount:3200, cat:'食費',  note:'スーパー', date:'05/07',who:'a'},
-];
-let memos = [
-  {id:'m1',text:'トイレットペーパー買う',done:false,who:'b',ts:'5/6'},
-  {id:'m2',text:'来月の旅行プラン決める',done:false,who:'a',ts:'5/7'},
-  {id:'m3',text:'電球交換（洗面所）',    done:true, who:'b',ts:'5/5'},
-];
+let fx = [], ent = [], memos = [];
 let mT='expense', mP='a', mWho='a', selDay=null, currentTab='home';
 
-function gfx(){ return fx.filter(f=>f.on).map(f=>({id:'x'+f.id,amount:f.amount,cat:f.cat,note:f.name,date:`05/${String(f.day).padStart(2,'0')}`,who:f.who,fixed:true})); }
+/* ── Firebase State ── */
+let currentUser  = null;
+let householdId  = null;
+let myRole       = 'a';
+let myName       = '';
+let myColor      = '#e2dc54';
+let INVITE_CODE  = '';
+let membersMap   = { a:{name:'私',color:'#e2dc54'}, b:{name:'パートナー',color:'#add0ee'} };
+let unsubscribers = [];
+let obCreating   = false;
+
+/* ── Current month ── */
+const NOW = new Date();
+const CUR_Y = NOW.getFullYear(), CUR_M = NOW.getMonth()+1, TODAY = NOW.getDate();
+function mmStr(){ return String(CUR_M).padStart(2,'0'); }
+function periodLabel(){ return `${CUR_Y}年${CUR_M}月`; }
+
+/* ── Firestore shorthand ── */
+const fsdb = () => firebase.firestore();
+
+/* ── Data helpers ── */
+function gfx(){
+  return fx.filter(f=>f.on).map(f=>({
+    id:'x'+f.id, amount:f.amount, cat:f.cat, note:f.name,
+    date:`${mmStr()}/${String(f.day).padStart(2,'0')}`,
+    who:f.who, fixed:true
+  }));
+}
 function all(){ return [...gfx(), ...ent]; }
 function pts(){ let a=0,b=0; all().forEach(e=>e.who==='a'?a+=e.amount:b+=e.amount); return{a,b,t:a+b}; }
 function cts(){ const t={}; all().forEach(e=>t[e.cat]=(t[e.cat]||0)+e.amount); return t; }
-function upd(){ const{a,b,t}=pts(); document.getElementById('ttl').textContent=fmt(t); document.getElementById('ka').textContent=fmt(a); document.getElementById('kb').textContent=fmt(b); }
+
+function upd(){
+  const{a,b,t}=pts();
+  document.getElementById('ttl').textContent=fmt(t);
+  const hsub=document.getElementById('hsub');
+  if(hsub) hsub.innerHTML=`<span>${nameOf('a')} <b>${fmt(a)}</b></span><span>${nameOf('b')} <b>${fmt(b)}</b></span>`;
+  const pb=document.getElementById('period-btn');
+  if(pb) pb.textContent=periodLabel()+' ▾';
+}
+
+/* ── Screen management ── */
+function showScreen(name){
+  document.getElementById('loading-screen').style.display = name==='loading' ? 'flex' : 'none';
+  document.getElementById('login-screen').style.display   = name==='login'   ? 'flex' : 'none';
+  const ob=document.getElementById('onboarding');
+  ob.style.display = name==='onboarding' ? 'flex' : 'none';
+  ob.style.opacity = '1';
+}
 
 /* ── Calendar ── */
 function buildCalendar(){
-  const daysInMonth=31, firstDay=new Date(2026,4,1).getDay(), today=7;
+  const days = new Date(CUR_Y, CUR_M, 0).getDate();
+  const first = new Date(CUR_Y, CUR_M-1, 1).getDay();
   const dayMap={};
-  all().forEach(e=>{ const p=e.date.split('/'); if(p.length===2){const d=parseInt(p[1]); dayMap[d]=(dayMap[d]||0)+e.amount;} });
+  all().forEach(e=>{
+    const p=e.date.split('/');
+    if(p.length===2){ const d=parseInt(p[1]); dayMap[d]=(dayMap[d]||0)+e.amount; }
+  });
   const{t}=pts();
   const heads=['日','月','火','水','木','金','土'].map(d=>`<span>${d}</span>`).join('');
   let cells='';
-  for(let i=0;i<firstDay;i++) cells+=`<div class="cal-cell empty"></div>`;
-  for(let d=1;d<=daysInMonth;d++){
-    const amt=dayMap[d], dow=(firstDay+d-1)%7;
-    const cls=['cal-cell',d===today?'today':'',d===selDay?'sel':'',dow===0?'sun':dow===6?'sat':''].filter(Boolean).join(' ');
+  for(let i=0;i<first;i++) cells+=`<div class="cal-cell empty"></div>`;
+  for(let d=1;d<=days;d++){
+    const amt=dayMap[d], dow=(first+d-1)%7;
+    const cls=['cal-cell',d===TODAY?'today':'',d===selDay?'sel':'',dow===0?'sun':dow===6?'sat':''].filter(Boolean).join(' ');
     cells+=`<div class="${cls}" onclick="K.selDay(${d})">
       <div class="cal-num">${d}</div>
-      ${amt ? `<div class="cal-amt">¥${Math.round(amt).toLocaleString('ja-JP')}</div>` : `<div style="height:11px"></div>`}
+      ${amt?`<div class="cal-amt">¥${Math.round(amt).toLocaleString('ja-JP')}</div>`:`<div style="height:11px"></div>`}
     </div>`;
   }
   return `<div class="cal-wrap">
-    <div class="cal-top"><span class="cal-month">2026年5月</span><span class="cal-total">${fmt(t)}</span></div>
+    <div class="cal-top"><span class="cal-month">${periodLabel()}</span><span class="cal-total">${fmt(t)}</span></div>
     <div class="cal-heads">${heads}</div>
     <div class="cal-grid">${cells}</div>
   </div>`;
 }
 
-/* ── Memo cards (image-1 style) ── */
+/* ── Memo cards ── */
 function buildMemoCards(){
   if(!memos.length) return '';
-  const cards = memos.map((m,i) => {
-    const bg = col(i);
-    const textCol = tc(bg), chipCol = chipBg(bg);
-    const isA = m.who==='a';
-    const whoLabel = isA ? '私' : 'パートナー';
-    const whoDot = isA ? '#e2dc54' : '#add0ee';
-    const actionLabel = m.done ? '✓' : '→';
+  const cards=memos.map((m,i)=>{
+    const bg=col(i), textCol=tc(bg), chipCol=chipBg(bg);
+    const whoDot=m.who==='a'?'#e2dc54':'#add0ee';
     return `<div class="memo-card${m.done?' done-card':''}" style="background:${bg}" onclick="K.togM('${m.id}')">
       <div class="mc-text${m.done?' struck':''}" style="color:${textCol}">${m.text}</div>
       <div class="mc-bottom">
         <div class="mc-chip" style="background:${chipCol};color:${textCol}">
           <span style="width:6px;height:6px;border-radius:50%;background:${isDk(bg)?'rgba(255,255,255,.6)':whoDot};display:inline-block;flex-shrink:0"></span>
-          ${whoLabel} · ${m.ts}
+          ${nameOf(m.who)} · ${m.ts}
         </div>
-        <div class="mc-action" style="background:${chipCol};color:${textCol};font-weight:600">${actionLabel}</div>
+        <div class="mc-action" style="background:${chipCol};color:${textCol};font-weight:600">${m.done?'✓':'→'}</div>
       </div>
     </div>`;
   }).join('');
@@ -395,12 +473,12 @@ function buildMemoCards(){
 
 /* ── Entry card ── */
 function xCard(e,i,offset=0){
-  const bg=col(offset+i), dark=isDk(bg), t=tc(bg), isA=e.who==='a';
+  const bg=col(offset+i), dark=isDk(bg), t=tc(bg);
   const avBg=`rgba(${dark?'255,255,255':'26,26,26'},.18)`;
-  return`<div class="xcard${dark?' dk':''}" style="background:${bg}">
+  return `<div class="xcard${dark?' dk':''}" style="background:${bg}">
     ${e.fixed?`<div class="ftag" style="color:${t}">↺ 固定費</div>`:''}
     <div class="xtop">
-      <div class="xav" style="background:${avBg};color:${t}">${isA?'私':'彼'}</div>
+      <div class="xav" style="background:${avBg};color:${t}">${initialOf(e.who)}</div>
       <div class="xday" style="color:${t}">${e.date}</div>
     </div>
     <div class="xcat" style="color:${t}">${e.cat}</div>
@@ -424,14 +502,14 @@ function buildCompare(){
   const rows=allCats.map(c=>{
     const cur=thisCats[c]||0, last=LAST_MONTH[c]||0, d=cur-last;
     const arrow=d>0?'↑':d<0?'↓':'→', arrowCls=d>0?'up':d<0?'dn':'flat';
-    return`<div class="cat-compare-row">
+    return `<div class="cat-compare-row">
       <div class="cc-name">${c}</div>
       <div class="cc-bar-wrap"><div class="cc-bar-bg"><div class="cc-bar-fill" style="width:${Math.round(cur/maxAmt*100)}%;background:${getCatCol(c)}"></div></div></div>
       <div class="cc-arrow ${arrowCls}">${arrow}</div>
       <div class="cc-val">${fmt(cur)}</div>
     </div>`;
   }).join('');
-  return`<div class="compare-card">
+  return `<div class="compare-card">
     <h3>先月との変動費比較</h3>
     <div class="compare-hero"><div class="ch-amt">${fmt(thisTotal)}</div><div class="ch-delta ${isFlat?'flat':isUp?'up':'dn'}">${deltaLabel}（${pct}%）</div></div>
     <div class="compare-sub">先月の変動費 ${fmt(lastTotal)} との比較</div>
@@ -441,11 +519,15 @@ function buildCompare(){
 
 /* ── Renders ── */
 function rHome(){
-  const list=(selDay===null?all():all().filter(e=>e.date===`05/${String(selDay).padStart(2,'0')}`)).sort((a,b)=>b.date.localeCompare(a.date));
+  const mm=mmStr();
+  const list=(selDay===null?all():all().filter(e=>e.date===`${mm}/${String(selDay).padStart(2,'0')}`))
+    .sort((a,b)=>b.date.localeCompare(a.date));
   const total=list.reduce((s,e)=>s+e.amount,0);
-  const hdr=selDay?`<div class="day-header">5月${selDay}日${list.length?' — '+fmt(total):''}</div>`:`<div class="day-header">すべての記録</div>`;
+  const hdr=selDay
+    ?`<div class="day-header">${CUR_M}月${selDay}日${list.length?' — '+fmt(total):''}</div>`
+    :`<div class="day-header">すべての記録</div>`;
   const empty=list.length?'':`<div style="text-align:center;padding:20px;color:var(--ink2);font-size:13px;background:rgba(255,255,255,.55);border-radius:16px">記録がありません</div>`;
-  document.getElementById('t-home').innerHTML = buildCalendar() + buildMemoCards() + hdr + list.map((e,i)=>xCard(e,i,memos.length)).join('') + empty;
+  document.getElementById('t-home').innerHTML=buildCalendar()+buildMemoCards()+hdr+list.map((e,i)=>xCard(e,i,memos.length)).join('')+empty;
 }
 
 function rSettle(){
@@ -455,6 +537,7 @@ function rSettle(){
   const cA={}, cB={};
   all().forEach(e=>{ if(e.who==='a') cA[e.cat]=(cA[e.cat]||0)+e.amount; else cB[e.cat]=(cB[e.cat]||0)+e.amount; });
   const allC=[...new Set([...Object.keys(cA),...Object.keys(cB)])];
+  const nA=nameOf('a'), nB=nameOf('b');
   const catRows=Object.entries(ct).sort((x,y)=>y[1]-x[1]).map(([c,v])=>`
     <div class="crow"><div class="cdot" style="background:${getCatCol(c)}"></div><div class="cn">${c}</div>
     <div class="cbar-w"><div class="cbar" style="width:${Math.round(v/mx*100)}%;background:${getCatCol(c)}"></div></div>
@@ -463,11 +546,11 @@ function rSettle(){
     <div class="shero">
       <div class="sl">${bal?'精算不要':'今月の精算'}</div>
       <div class="sa">${bal?'均等':fmt(amt)}</div>
-      <div class="sd">${bal?'ふたりの負担は均等です':(bOwes?'パートナー':'私')+'が'+(bOwes?'私':'パートナー')+'に支払う'}</div>
+      <div class="sd">${bal?'ふたりの負担は均等です':(bOwes?nB:nA)+'が'+(bOwes?nA:nB)+'に支払う'}</div>
     </div>
     <div class="pcards">
-      <div class="pcard pcard-a"><div class="pn">私</div><div class="pv">${fmt(a)}</div><div class="pp">${pPct}%を負担</div></div>
-      <div class="pcard pcard-b"><div class="pn">パートナー</div><div class="pv">${fmt(b)}</div><div class="pp">${100-pPct}%を負担</div></div>
+      <div class="pcard pcard-a"><div class="pn">${nA}</div><div class="pv">${fmt(a)}</div><div class="pp">${pPct}%を負担</div></div>
+      <div class="pcard pcard-b"><div class="pn">${nB}</div><div class="pv">${fmt(b)}</div><div class="pp">${100-pPct}%を負担</div></div>
     </div>
     ${buildCompare()}
     <div class="ccard"><h3>カテゴリ別支出</h3>${catRows}</div>
@@ -478,8 +561,8 @@ function rSettle(){
           <span style="font-size:11px;color:var(--ink2)">${fmt((cA[c]||0)+(cB[c]||0))}</span>
         </div>
         <div style="display:flex;gap:12px;font-size:11px;font-weight:500">
-          <span style="color:var(--forest)">私: ${cA[c]?fmt(cA[c]):'－'}</span>
-          <span style="color:var(--blue)">パートナー: ${cB[c]?fmt(cB[c]):'－'}</span>
+          <span style="color:var(--forest)">${nA}: ${cA[c]?fmt(cA[c]):'－'}</span>
+          <span style="color:var(--blue)">${nB}: ${cB[c]?fmt(cB[c]):'－'}</span>
         </div>
       </div>`).join('')}
     </div>`;
@@ -493,7 +576,7 @@ function rMemo(){
     <button class="memo-cb${m.done?' ch':''}" onclick="K.togM('${m.id}')">${m.done?chkSvg:''}</button>
     <div class="memo-body">
       <div class="mt">${m.text}</div>
-      <div class="mm"><span style="width:7px;height:7px;border-radius:50%;background:${m.who==='a'?'var(--lime)':'var(--sky)'};display:inline-block"></span>${m.who==='a'?'私':'パートナー'} · ${m.ts}</div>
+      <div class="mm"><span style="width:7px;height:7px;border-radius:50%;background:${m.who==='a'?'var(--lime)':'var(--sky)'};display:inline-block"></span>${nameOf(m.who)} · ${m.ts}</div>
     </div>
     <button class="memo-del" onclick="K.delM('${m.id}')">${xSvg}</button>
   </div>`;
@@ -504,8 +587,8 @@ function rMemo(){
       <button class="send-btn" onclick="K.addM()">${sendSvg}</button>
     </div>
     <div class="memo-who-row">
-      <button class="${mWho==='a'?'pa':'off'}" onclick="K.mw('a')">私から</button>
-      <button class="${mWho==='b'?'pb':'off'}" onclick="K.mw('b')">パートナーから</button>
+      <button class="${mWho==='a'?'pa':'off'}" onclick="K.mw('a')">${nameOf('a')}から</button>
+      <button class="${mWho==='b'?'pb':'off'}" onclick="K.mw('b')">${nameOf('b')}から</button>
     </div>
     ${todo.length?`<div class="msect">やること（${todo.length}）</div>${todo.map(mk).join('')}`:''}
     ${done.length?`<div class="msect">完了（${done.length}）</div>${done.map(mk).join('')}`:''}
@@ -517,11 +600,11 @@ function rFixed(){
   const opts=userCats.map(c=>`<option>${c}</option>`).join('');
   const dOpts=Array.from({length:28},(_,i)=>`<option value="${i+1}">${i+1}日</option>`).join('');
   const items=fx.map((f,i)=>{
-    const bg=col(i), dark=isDk(bg), t=tc(bg), isA=f.who==='a';
+    const bg=col(i), dark=isDk(bg), t=tc(bg);
     const dbg=`rgba(${dark?'255,255,255':'26,26,26'},.15)`;
-    return`<div class="fxcard${f.on?'':' off'}" style="background:${bg}">
+    return `<div class="fxcard${f.on?'':' off'}" style="background:${bg}">
       <div class="fxicon" style="color:${t}">${FICON[f.cat]||'📦'}</div>
-      <div class="fxmeta"><div class="fn" style="color:${t}">${f.name}</div><div class="fd" style="color:${t}">毎月${f.day}日 · ${isA?'私':'パートナー'} · ${f.cat}</div></div>
+      <div class="fxmeta"><div class="fn" style="color:${t}">${f.name}</div><div class="fd" style="color:${t}">毎月${f.day}日 · ${nameOf(f.who)} · ${f.cat}</div></div>
       <div class="fxright"><div class="fxamt" style="color:${t}">${fmt(f.amount)}</div>
         <div class="fxact">
           <button class="dbtn" onclick="K.delF('${f.id}')" style="background:${dbg};color:${t}">削除</button>
@@ -542,7 +625,7 @@ function rFixed(){
       </div>
       <div class="g2">
         <div class="irow"><label>カテゴリ</label><select id="fc">${opts}</select></div>
-        <div class="irow"><label>支払う人</label><select id="fp"><option value="a">私</option><option value="b">パートナー</option></select></div>
+        <div class="irow"><label>支払う人</label><select id="fp"><option value="a">${nameOf('a')}</option><option value="b">${nameOf('b')}</option></select></div>
       </div>
       <button class="abtn" onclick="K.addF()">↺ 登録する</button>
     </div>`;
@@ -550,18 +633,20 @@ function rFixed(){
 
 function rModal(){
   const opts=userCats.map(c=>`<option>${c}</option>`).join('');
+  const t=new Date(), todayStr=`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+  const nA=nameOf('a'), nB=nameOf('b');
   document.getElementById('modal-body').innerHTML=`
     <div class="ttog">
       <button class="${mT==='expense'?'se':''}" onclick="K.mt('expense')">支出</button>
       <button class="${mT==='income'?'si':''}" onclick="K.mt('income')">収入</button>
     </div>
     <div class="ptog">
-      <button class="${mP==='a'?'pa':''}" onclick="K.mp('a')">私</button>
-      <button class="${mP==='b'?'pb':''}" onclick="K.mp('b')">パートナー</button>
+      <button class="${mP==='a'?'pa':''}" onclick="K.mp('a')">${nA}</button>
+      <button class="${mP==='b'?'pb':''}" onclick="K.mp('b')">${nB}</button>
     </div>
     <div class="irow"><label>金額（円）</label><input type="number" id="ma" placeholder="0" style="font-size:22px;font-weight:500;letter-spacing:-1px"></div>
     <div class="g2">
-      <div class="irow"><label>日付</label><input type="date" id="md" value="2026-05-07"></div>
+      <div class="irow"><label>日付</label><input type="date" id="md" value="${todayStr}"></div>
       <div class="irow"><label>カテゴリ</label><select id="mc">${opts}</select></div>
     </div>
     <div class="irow"><label>メモ</label><input type="text" id="mn" placeholder="内容を入力"></div>
@@ -581,47 +666,149 @@ const K = {
     if(n==='home')rHome(); else if(n==='fixed')rFixed(); else if(n==='settle')rSettle(); else rMemo();
   },
   selDay(d){ selDay=selDay===d?null:d; rHome(); },
-  openModal(){ rModal(); document.getElementById('modal').classList.add('open'); document.getElementById('backdrop').classList.add('open'); setTimeout(()=>{ const el=document.getElementById('ma'); if(el)el.focus(); },320); },
+  openModal(){
+    mP=myRole;
+    rModal();
+    document.getElementById('modal').classList.add('open');
+    document.getElementById('backdrop').classList.add('open');
+    setTimeout(()=>{ const el=document.getElementById('ma'); if(el)el.focus(); },320);
+  },
   closeModal(){ document.getElementById('modal').classList.remove('open'); document.getElementById('backdrop').classList.remove('open'); },
   mt(t){ mT=t; rModal(); },
   mp(p){ mP=p; rModal(); },
   addCat(){ const el=document.getElementById('nc'), name=el.value.trim(); if(!name||userCats.includes(name))return; userCats.push(name); el.value=''; rModal(); },
+
   addEnt(){
     const amt=parseInt(document.getElementById('ma').value||0);
     if(!amt||amt<=0)return;
     const cat=document.getElementById('mc').value, note=document.getElementById('mn').value||cat;
     const raw=document.getElementById('md').value, p=raw.split('-');
-    const date=p.length===3 ? `${p[1]}/${p[2]}` : (()=>{ const n=new Date(); return `${String(n.getMonth()+1).padStart(2,'0')}/${String(n.getDate()).padStart(2,'0')}`; })();
-    ent.push({id:'e'+Date.now(),amount:amt,cat,note,date,who:mP});
-    upd(); K.closeModal();
-    if(currentTab==='home')rHome(); else if(currentTab==='settle')rSettle();
+    const date=p.length===3?`${p[1]}/${p[2]}`:(()=>{ const n=new Date(); return `${String(n.getMonth()+1).padStart(2,'0')}/${String(n.getDate()).padStart(2,'0')}`; })();
+    if(householdId){
+      fsdb().collection(`households/${householdId}/entries`).add({
+        amount:amt, cat, note, date, who:mP,
+        createdAt:firebase.firestore.FieldValue.serverTimestamp()
+      });
+    } else {
+      ent.push({id:'e'+Date.now(),amount:amt,cat,note,date,who:mP});
+      upd(); if(currentTab==='home')rHome(); if(currentTab==='settle')rSettle();
+    }
+    K.closeModal();
   },
+
   addF(){
     const name=document.getElementById('fn').value.trim(), amt=parseInt(document.getElementById('fa').value||0);
     if(!name||!amt||amt<=0)return;
-    fx.push({id:'f'+Date.now(),name,amount:amt,cat:document.getElementById('fc').value,who:document.getElementById('fp').value,day:parseInt(document.getElementById('fd').value),on:true});
-    upd(); rFixed();
+    const data={name,amount:amt,cat:document.getElementById('fc').value,who:document.getElementById('fp').value,day:parseInt(document.getElementById('fd').value),on:true};
+    if(householdId){
+      fsdb().collection(`households/${householdId}/fixedExpenses`).add(data);
+    } else {
+      fx.push({id:'f'+Date.now(),...data}); upd(); rFixed();
+    }
   },
-  togF(id){ const f=fx.find(f=>f.id===id); if(f)f.on=!f.on; upd(); rFixed(); },
-  delF(id){ fx=fx.filter(f=>f.id!==id); upd(); rFixed(); },
+
+  togF(id){
+    const f=fx.find(f=>f.id===id); if(!f)return;
+    if(householdId){
+      fsdb().doc(`households/${householdId}/fixedExpenses/${id}`).update({on:!f.on});
+    } else { f.on=!f.on; upd(); rFixed(); }
+  },
+
+  delF(id){
+    if(householdId){
+      fsdb().doc(`households/${householdId}/fixedExpenses/${id}`).delete();
+    } else { fx=fx.filter(f=>f.id!==id); upd(); rFixed(); }
+  },
+
   mw(w){ mWho=w; rMemo(); },
+
   addM(){
     const el=document.getElementById('mi'), text=el.value.trim();
     if(!text)return;
     const n=new Date();
-    memos.unshift({id:'m'+Date.now(),text,done:false,who:mWho,ts:`${n.getMonth()+1}/${n.getDate()}`});
-    el.value=''; rMemo();
-    if(currentTab==='home')rHome();
+    const data={text,done:false,who:mWho,ts:`${n.getMonth()+1}/${n.getDate()}`,createdAt:firebase.firestore.FieldValue.serverTimestamp()};
+    el.value='';
+    if(householdId){
+      fsdb().collection(`households/${householdId}/memos`).add(data);
+    } else {
+      memos.unshift({id:'m'+Date.now(),...data}); rMemo(); if(currentTab==='home')rHome();
+    }
   },
-  togM(id){ const m=memos.find(m=>m.id===id); if(m)m.done=!m.done; rMemo(); if(currentTab==='home')rHome(); },
-  delM(id){ memos=memos.filter(m=>m.id!==id); rMemo(); }
+
+  togM(id){
+    const m=memos.find(m=>m.id===id); if(!m)return;
+    if(householdId){
+      fsdb().doc(`households/${householdId}/memos/${id}`).update({done:!m.done});
+    } else { m.done=!m.done; rMemo(); if(currentTab==='home')rHome(); }
+  },
+
+  delM(id){
+    if(householdId){
+      fsdb().doc(`households/${householdId}/memos/${id}`).delete();
+    } else { memos=memos.filter(m=>m.id!==id); rMemo(); }
+  }
 };
 
-upd(); rHome();
+/* ── Firestore sync ── */
+function subscribeToHousehold(){
+  unsubscribers.forEach(u=>u());
+  unsubscribers=[];
+  const base=`households/${householdId}`;
+
+  unsubscribers.push(fsdb().collection(`${base}/entries`).onSnapshot(snap=>{
+    ent=snap.docs.map(d=>({id:d.id,...d.data()}));
+    upd();
+    if(currentTab==='home')rHome();
+    if(currentTab==='settle')rSettle();
+  }));
+
+  unsubscribers.push(fsdb().collection(`${base}/fixedExpenses`).onSnapshot(snap=>{
+    fx=snap.docs.map(d=>({id:d.id,...d.data()}));
+    upd();
+    if(currentTab==='home')rHome();
+    if(currentTab==='fixed')rFixed();
+  }));
+
+  unsubscribers.push(fsdb().collection(`${base}/memos`).onSnapshot(snap=>{
+    memos=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(currentTab==='home')rHome();
+    if(currentTab==='memo')rMemo();
+  }));
+
+  unsubscribers.push(fsdb().collection(`${base}/users`).onSnapshot(snap=>{
+    snap.docs.forEach(d=>{
+      const u=d.data();
+      if(u.role) membersMap[u.role]={name:u.name||'',color:u.color||''};
+    });
+    const avA=document.getElementById('av-a'), avB=document.getElementById('av-b');
+    const mA=membersMap.a, mB=membersMap.b;
+    if(avA&&mA.name){ avA.textContent=mA.name[0]; avA.style.background=mA.color||'var(--lime)'; avA.style.color=isDk(mA.color||'#e2dc54')?'#fff':'#1A1A1A'; }
+    if(avB&&mB.name){ avB.textContent=mB.name[0]; avB.style.background=mB.color||'var(--sky)'; avB.style.color=isDk(mB.color||'#add0ee')?'#fff':'#1A1A1A'; }
+    upd();
+  }));
+}
+
+/* ── Auth ── */
+function signInWithGoogle(){
+  firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider())
+    .catch(e=>{ console.error(e); alert('ログインに失敗しました。'); });
+}
+
+function doSignOut(){
+  if(!confirm('ログアウトしますか？'))return;
+  unsubscribers.forEach(u=>u()); unsubscribers=[];
+  firebase.auth().signOut();
+}
 
 /* ── Onboarding ── */
-let obStep=0, obInviteTab='invite', myName='', partnerName='';
-const INVITE_CODE = '2648-57'; // mock code
+let obStep=0, obInviteTab='invite';
+
+function generateCode(){
+  const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s=''; for(let i=0;i<4;i++) s+=c[Math.floor(Math.random()*c.length)];
+  s+='-'; for(let i=0;i<2;i++) s+=c[Math.floor(Math.random()*c.length)];
+  return s;
+}
 
 function obSetStep(n){
   obStep=n;
@@ -635,14 +822,14 @@ function obSetStep(n){
   else body.innerHTML=obStep2();
 }
 
-function obStep0(){ return`
+function obStep0(){ return `
   <div class="ob-title">あなたの名前を<br>教えてください</div>
-  <div class="ob-sub">パートナーとの家計を一緒に管理しましょう。まずあなたの名前を入力してください。</div>
+  <div class="ob-sub">パートナーとの家計を一緒に管理しましょう。</div>
   <input class="ob-input" id="ob-name" placeholder="例：田中 花子" value="${myName}" maxlength="10">
   <div style="margin-bottom:20px">
     <div style="font-size:11px;font-weight:500;color:var(--ink2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px">アイコンカラー</div>
     <div style="display:flex;gap:8px">
-      ${['#e2dc54','#dfefca','#add0ee','#d1c4e9','#f45c27','#266433'].map((c,i)=>`
+      ${['#e2dc54','#dfefca','#add0ee','#d1c4e9','#f45c27','#266433'].map(c=>`
         <div onclick="OB.setMyColor('${c}')" style="width:32px;height:32px;border-radius:50%;background:${c};cursor:pointer;border:2.5px solid ${myColor===c?'var(--ink)':'transparent'};transition:border .15s"></div>
       `).join('')}
     </div>
@@ -650,7 +837,7 @@ function obStep0(){ return`
   <button class="ob-btn" onclick="OB.next0()">次へ →</button>
 `;}
 
-function obStep1(){ return`
+function obStep1(){ return `
   <div class="ob-title">パートナーを<br>招待しましょう</div>
   <div class="ob-sub">招待コードをパートナーに送ると、同じ家計簿を共有できます。</div>
   <div class="ob-tab-row">
@@ -660,7 +847,7 @@ function obStep1(){ return`
   ${obInviteTab==='invite' ? `
     <div class="ob-card" style="background:var(--lime)">
       <div style="font-size:11px;font-weight:600;color:var(--ink2);text-transform:uppercase;letter-spacing:.5px">招待コード</div>
-      <div class="ob-code">${INVITE_CODE}</div>
+      <div class="ob-code">${INVITE_CODE||'生成中…'}</div>
       <div style="font-size:12px;font-weight:400;color:var(--ink2);text-align:center">このコードをパートナーに送ってください</div>
     </div>
     <button class="ob-share-btn" onclick="OB.share()">
@@ -679,75 +866,127 @@ function obStep1(){ return`
   `}
 `;}
 
-function obStep2(){ return`
+function obStep2(){ return `
   <div class="ob-title">準備完了！</div>
-  <div class="ob-sub">ふたりの家計簿がはじまります。いつでも設定から変更できます。</div>
+  <div class="ob-sub">ふたりの家計簿がはじまります。</div>
   <div class="ob-avatar-row" style="margin-bottom:10px">
     <div class="ob-avatar" style="background:${myColor};color:${isDk(myColor)?'#fff':'#1A1A1A'}">${myName?myName[0]:'私'}</div>
     <div>
       <div style="font-size:14px;font-weight:600;color:var(--ink)">${myName||'あなた'}</div>
-      <div style="font-size:11px;color:var(--ink2)">自分のアカウント</div>
+      <div style="font-size:11px;color:var(--ink2)">${myRole==='a'?'ホスト（招待する側）':'参加者（招待された側）'}</div>
     </div>
   </div>
-  <div class="ob-avatar-row">
-    <div class="ob-avatar" style="background:var(--sky);color:var(--ink)">彼</div>
-    <div>
-      <div style="font-size:14px;font-weight:600;color:var(--ink)">パートナー</div>
-      <div style="font-size:11px;color:var(--ink2)">招待コード: ${INVITE_CODE}</div>
-    </div>
-  </div>
-  <div style="margin:20px 0;padding:14px;background:rgba(26,26,26,.05);border-radius:14px;font-size:12px;color:var(--ink2);line-height:1.6">
-    <b style="color:var(--ink)">パートナーの参加方法</b><br>
-    パートナーがアプリをインストールして招待コード <b style="color:var(--ink);letter-spacing:2px">${INVITE_CODE}</b> を入力すると、リアルタイムでデータが共有されます。
-  </div>
+  ${INVITE_CODE?`<div style="margin:16px 0;padding:14px;background:rgba(26,26,26,.05);border-radius:14px;font-size:12px;color:var(--ink2);line-height:1.6">
+    招待コード <b style="color:var(--ink);letter-spacing:2px">${INVITE_CODE}</b> でパートナーが参加できます。
+  </div>`:''}
   <button class="ob-btn" onclick="OB.finish()" style="background:var(--forest)">はじめる</button>
 `;}
 
-let myColor='#e2dc54';
-
 const OB = {
   setMyColor(c){ myColor=c; obSetStep(0); },
-  next0(){
+
+  async next0(){
     const n=document.getElementById('ob-name');
     myName=(n?n.value.trim():'')||'あなた';
+    if(!currentUser){ obSetStep(1); return; }
+
+    document.getElementById('ob-body').innerHTML=`<div style="text-align:center;padding:60px;color:var(--ink2);font-size:13px">準備中…</div>`;
+    try {
+      await fsdb().doc(`users/${currentUser.uid}`).set({name:myName,color:myColor,uid:currentUser.uid},{merge:true});
+      if(!householdId) await OB._createHousehold();
+    } catch(e){ console.error(e); }
     obSetStep(1);
   },
-  invTab(t){ obInviteTab=t; obSetStep(1); },
-  share(){ alert('実際のアプリではLINE・メッセージ・メールでコードを送れます。'); },
-  joinCode(){
-    const c=document.getElementById('ob-code');
-    if(c&&c.value.replace('-','').length>=4) obSetStep(2);
-    else { c&&(c.style.background='rgba(244,92,39,.15)'); }
+
+  async _createHousehold(){
+    if(obCreating)return; obCreating=true;
+    try {
+      const code=generateCode();
+      const hRef=await fsdb().collection('households').add({inviteCode:code,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+      householdId=hRef.id; INVITE_CODE=code;
+      await fsdb().doc(`inviteCodes/${code}`).set({householdId});
+      myRole='a';
+      await fsdb().doc(`users/${currentUser.uid}`).set({householdId,role:'a'},{merge:true});
+      await fsdb().doc(`households/${householdId}/users/${currentUser.uid}`).set({name:myName,color:myColor,role:'a',uid:currentUser.uid});
+    } finally { obCreating=false; }
   },
+
+  invTab(t){ obInviteTab=t; obSetStep(1); },
+
+  share(){
+    const msg=`ふたりの家計簿への招待コード: ${INVITE_CODE}`;
+    if(navigator.share) navigator.share({title:'ふたりの家計簿',text:msg});
+    else if(navigator.clipboard) navigator.clipboard.writeText(INVITE_CODE).then(()=>alert('コードをコピーしました: '+INVITE_CODE));
+    else alert(msg);
+  },
+
+  async joinCode(){
+    const c=document.getElementById('ob-code');
+    const code=(c?c.value.trim().toUpperCase():'');
+    if(!code||code.replace('-','').length<4){ if(c)c.style.background='rgba(244,92,39,.15)'; return; }
+    try {
+      const codeDoc=await fsdb().doc(`inviteCodes/${code}`).get();
+      if(!codeDoc.exists){ if(c)c.style.background='rgba(244,92,39,.15)'; alert('招待コードが見つかりません'); return; }
+      const hId=codeDoc.data().householdId;
+      householdId=hId; INVITE_CODE=code; myRole='b';
+      await fsdb().doc(`users/${currentUser.uid}`).set({householdId:hId,role:'b'},{merge:true});
+      await fsdb().doc(`households/${hId}/users/${currentUser.uid}`).set({name:myName,color:myColor,role:'b',uid:currentUser.uid});
+      obSetStep(2);
+    } catch(e){ console.error(e); alert('エラーが発生しました'); }
+  },
+
   next1(){ obSetStep(2); },
-  finish(){
-    // Apply user settings
-    const initial=myName[0]||'私';
-    document.getElementById('av-a').textContent=initial;
-    document.getElementById('av-a').style.background=myColor;
-    document.getElementById('av-a').style.color=isDk(myColor)?'#fff':'#1A1A1A';
-    document.getElementById('av-b').textContent='彼';
-    document.getElementById('ob-name-display')&&(document.getElementById('ob-name-display').textContent=myName);
-    // Hide onboarding
-    const ob=document.getElementById('onboarding');
-    ob.style.transition='opacity .4s';
-    ob.style.opacity='0';
-    setTimeout(()=>ob.style.display='none',400);
-    // Update names in data
-    names={a:myName,b:'パートナー'};
+
+  async finish(){
+    mP=myRole; mWho=myRole;
+    membersMap[myRole]={name:myName,color:myColor};
+    if(householdId) subscribeToHousehold();
+    const avA=document.getElementById('av-a'), avB=document.getElementById('av-b');
+    if(myRole==='a'&&avA){ avA.textContent=myName?myName[0]:'私'; avA.style.background=myColor; avA.style.color=isDk(myColor)?'#fff':'#1A1A1A'; }
+    else if(myRole==='b'&&avB){ avB.textContent=myName?myName[0]:'彼'; avB.style.background=myColor; avB.style.color=isDk(myColor)?'#fff':'#1A1A1A'; }
+    showScreen('app');
     upd(); rHome();
   }
 };
 
-// Show onboarding on first load
-obSetStep(0);
+/* ── App init ── */
+function initApp(){
+  firebase.initializeApp(firebaseConfig);
 
-/* ── Service Worker ── */
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/service-worker.js');
+  firebase.auth().onAuthStateChanged(async user=>{
+    if(!user){ showScreen('login'); return; }
+    currentUser=user;
+    try {
+      const userDoc=await fsdb().doc(`users/${user.uid}`).get();
+      if(!userDoc.exists){ showScreen('onboarding'); obSetStep(0); return; }
+
+      const p=userDoc.data();
+      myName=p.name||'あなた'; myColor=p.color||'#e2dc54';
+      myRole=p.role||'a'; mP=myRole; mWho=myRole;
+      householdId=p.householdId||null;
+      membersMap[myRole]={name:myName,color:myColor};
+
+      if(!householdId){ showScreen('onboarding'); obSetStep(1); return; }
+
+      const hDoc=await fsdb().doc(`households/${householdId}`).get();
+      if(hDoc.exists) INVITE_CODE=hDoc.data().inviteCode||'';
+
+      subscribeToHousehold();
+      showScreen('app');
+      upd(); rHome();
+    } catch(e){
+      console.error('Init error:',e);
+      showScreen('login');
+    }
   });
 }
+
+/* ── Service Worker ── */
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{ navigator.serviceWorker.register('/service-worker.js'); });
+}
+
+initApp();
 </script>
 </body>
 </html>
