@@ -1170,7 +1170,10 @@ const OB = {
       }
       const hId=codeDoc.data().householdId;
       const usersSnap=await fsdb().collection(`households/${hId}/users`).get();
-      const members=usersSnap.docs.map(d=>d.data());
+      // roleごとに1件だけ残す（重複排除）
+      const byRole={};
+      usersSnap.docs.forEach(d=>{ const u=d.data(); if(u.role&&!byRole[u.role]) byRole[u.role]=u; });
+      const members=Object.values(byRole);
       _restoreMembersData={};
       members.forEach(m=>{ _restoreMembersData[m.role]=m; });
       const rm=document.getElementById('restore-members');
@@ -1370,6 +1373,8 @@ const SET = {
         return d.ref.delete();
       }));
       membersMap[role]={name:'',color:''};
+      const av=document.getElementById('av-'+role);
+      if(av){ av.textContent=role==='a'?'私':'彼'; av.style.background=role==='a'?'var(--lime)':'var(--sky)'; av.style.color='var(--ink)'; }
       rSettings(); upd();
     } catch(e){
       console.error(e);
