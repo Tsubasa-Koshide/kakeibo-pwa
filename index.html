@@ -111,10 +111,11 @@ nav{display:flex;align-items:flex-start;background:var(--bg);border-top:.5px sol
 .cal-cell:not(.empty):hover{background:rgba(26,26,26,.05)}
 .cal-cell.sel{background:rgba(26,26,26,.07)}
 .cal-num{font-size:11px;font-weight:500;color:var(--ink);width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:50%}
-.cal-cell.today .cal-num{background:var(--ink);color:#fff}
+.cal-cell.today .cal-num{background:rgba(26,26,26,.13);color:var(--ink)}
 .cal-cell.sat .cal-num{color:var(--blue)}
 .cal-cell.sun .cal-num{color:var(--tang)}
 .cal-amt{font-size:8.5px;font-weight:500;color:var(--ink2);margin-top:1px;text-align:center}
+.cal-star{font-size:10px;color:#c9a227;margin-top:1px;text-align:center;line-height:1}
 .day-header{font-size:11px;font-weight:600;color:var(--ink2);text-transform:uppercase;letter-spacing:.5px;margin:4px 0 8px;padding:0 2px}
 
 /* ── Memo cards ── */
@@ -446,6 +447,7 @@ function buildCalendar(){
   const first = new Date(viewYear, viewMonth-1, 1).getDay();
   const prefix = viewPrefix()+'-';
   const isCurrentMonth = viewYear===TODAY_Y && viewMonth===TODAY_M;
+  const isFutureMonth = viewYear > TODAY_Y || (viewYear===TODAY_Y && viewMonth>TODAY_M);
   const dayMap={};
   all().forEach(e=>{
     if(e.date && e.date.startsWith(prefix)){
@@ -460,10 +462,11 @@ function buildCalendar(){
   for(let d=1;d<=days;d++){
     const amt=dayMap[d], dow=(first+d-1)%7;
     const isToday=isCurrentMonth&&d===TODAY_D;
+    const isPastDay=!isFutureMonth&&(!isCurrentMonth||d<=TODAY_D);
     const cls=['cal-cell',isToday?'today':'',d===selDay?'sel':'',dow===0?'sun':dow===6?'sat':''].filter(Boolean).join(' ');
     cells+=`<div class="${cls}" onclick="K.selDay(${d})">
       <div class="cal-num">${d}</div>
-      ${amt?`<div class="cal-amt">¥${Math.round(amt).toLocaleString('ja-JP')}</div>`:`<div style="height:11px"></div>`}
+      ${amt?`<div class="cal-amt">¥${Math.round(amt).toLocaleString('ja-JP')}</div>`:isPastDay?`<div class="cal-star">★</div>`:`<div style="height:11px"></div>`}
     </div>`;
   }
   return `<div class="cal-wrap">
@@ -592,7 +595,21 @@ function rSettle(){
           <span style="color:var(--blue)">${nB}: ${cB[c]?fmt(cB[c]):'－'}</span>
         </div>
       </div>`).join('')}
-    </div>`;
+    </div>
+    ${(()=>{
+      const daysInMonth=new Date(viewYear,viewMonth,0).getDate();
+      const isFutureMth=viewYear>TODAY_Y||(viewYear===TODAY_Y&&viewMonth>TODAY_M);
+      const isCurrentMth=viewYear===TODAY_Y&&viewMonth===TODAY_M;
+      const maxDay=isFutureMth?0:isCurrentMth?TODAY_D:daysInMonth;
+      const spentDays=new Set(all().map(e=>parseInt(e.date.slice(8))));
+      const noSpend=Array.from({length:maxDay},(_,i)=>i+1).filter(d=>!spentDays.has(d));
+      return `<div class="ccard">
+        <h3>★ 節約デイ（${noSpend.length}日 / ${maxDay}日中）</h3>
+        ${noSpend.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+          ${noSpend.map(d=>`<div style="padding:4px 10px;border-radius:20px;background:rgba(201,162,39,.13);color:#b8941f;font-size:12px;font-weight:600">★ ${d}日</div>`).join('')}
+        </div>`:`<div style="font-size:12px;color:var(--ink2);margin-top:4px">この期間はすべての日に支出があります</div>`}
+      </div>`;
+    })()}`;
 }
 
 function rMemo(){
@@ -688,6 +705,24 @@ function rModal(editEntry=null){
     ${isEdit?`<button class="abtn" style="background:var(--tang);margin-top:8px" onclick="K.delEntFromModal('${editEntry.id}')">削除する</button>`:''}`;
 }
 
+/* ── Modal value helpers ── */
+function _saveModal(){
+  return {
+    amt:(document.getElementById('ma')||{}).value||'',
+    date:(document.getElementById('md')||{}).value||'',
+    note:(document.getElementById('mn')||{}).value||'',
+    cat:(document.getElementById('mc')||{}).value||''
+  };
+}
+function _restoreModal(v){
+  const ma=document.getElementById('ma'),md=document.getElementById('md');
+  const mn=document.getElementById('mn'),mc=document.getElementById('mc');
+  if(ma&&v.amt) ma.value=v.amt;
+  if(md&&v.date) md.value=v.date;
+  if(mn) mn.value=v.note;
+  if(mc&&v.cat) mc.value=v.cat;
+}
+
 /* ── Controller ── */
 const K = {
   tab(n,btn){
@@ -714,8 +749,8 @@ const K = {
     setTimeout(()=>{ const el=document.getElementById('ma'); if(el)el.focus(); },320);
   },
   closeModal(){ document.getElementById('modal').classList.remove('open'); document.getElementById('backdrop').classList.remove('open'); },
-  mt(t){ mT=t; rModal(); },
-  mp(p){ mP=p; rModal(); },
+  mt(t){ const v=_saveModal(); mT=t; rModal(); _restoreModal(v); },
+  mp(p){ const v=_saveModal(); mP=p; rModal(); _restoreModal(v); },
   addCat(){ const el=document.getElementById('nc'), name=el.value.trim(); if(!name||userCats.includes(name))return; userCats.push(name); el.value=''; rModal(); },
 
   addEnt(){
