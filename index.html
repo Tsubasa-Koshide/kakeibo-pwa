@@ -1045,7 +1045,13 @@ const OB = {
       await fsdb().doc(`households/${hId}/users/${deviceId}`).set({name:myName,color:myColor,role:'b',deviceId});
       await fsdb().doc(`households/${hId}`).update({members:firebase.firestore.FieldValue.arrayUnion(deviceId)});
       obSetStep(2);
-    } catch(e){ console.error(e); alert('エラーが発生しました'); }
+    } catch(e){
+      console.error(e);
+      const msg = e.code==='permission-denied'
+        ? 'Firestoreの書き込み権限がありません。\nFirebaseコンソール→Firestore→ルールを確認してください。\n\nエラー: '+e.message
+        : 'エラーが発生しました\n'+e.message;
+      alert(msg);
+    }
   },
 
   async issueInviteCode(){
@@ -1064,7 +1070,10 @@ const OB = {
     } catch(e){
       console.error(e);
       btns.forEach(b=>{b.disabled=false;b.style.opacity='1';});
-      alert('エラーが発生しました');
+      const msg = e.code==='permission-denied'
+        ? 'Firestoreの書き込み権限がありません。\nFirebaseコンソール→Firestore→ルールを確認してください。\n\nエラー: '+e.message
+        : 'エラーが発生しました\n'+e.message;
+      alert(msg);
     }
   },
 
