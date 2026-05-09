@@ -55,7 +55,10 @@ body{font-family:'Inter',system-ui,sans-serif;background:#EEECEA;min-height:100v
 .av-a{background:var(--lime);color:var(--ink);margin-right:-10px;z-index:2}
 .av-b{background:var(--sky);color:var(--ink)}
 .hd-right{display:flex;align-items:center;gap:8px}
-.period{display:flex;align-items:center;gap:4px;font-size:12px;font-weight:500;color:var(--ink2);background:rgba(26,26,26,.07);padding:6px 12px;border-radius:20px;border:none;font-family:inherit;cursor:pointer}
+.period-nav{display:flex;align-items:center;background:rgba(26,26,26,.07);border-radius:20px;overflow:hidden}
+.period-arrow{background:none;border:none;cursor:pointer;font-size:16px;font-weight:500;color:var(--ink2);padding:5px 10px;font-family:inherit;line-height:1;transition:color .15s}
+.period-arrow:active{color:var(--ink)}
+.period-label{font-size:12px;font-weight:500;color:var(--ink2);padding:5px 4px;min-width:72px;text-align:center;white-space:nowrap}
 .logout-btn{font-size:11px;font-weight:500;color:var(--ink3);background:none;border:none;cursor:pointer;padding:6px 8px;font-family:inherit}
 .htitle{font-size:42px;font-weight:500;color:var(--ink);letter-spacing:-2px;line-height:1;margin:0 0 6px}
 .hsub{font-size:12px;color:var(--ink2);font-weight:400;display:flex;gap:16px}
@@ -289,7 +292,11 @@ nav{display:flex;align-items:flex-start;background:var(--bg);border-top:.5px sol
       <div class="top-row">
         <div class="avs"><div class="av av-a" id="av-a">私</div><div class="av av-b" id="av-b">彼</div></div>
         <div class="hd-right">
-          <button class="period" id="period-btn">読込中…</button>
+          <div class="period-nav">
+            <button class="period-arrow" onclick="K.prevMonth()">‹</button>
+            <span class="period-label" id="period-btn">読込中…</span>
+            <button class="period-arrow" onclick="K.nextMonth()">›</button>
+          </div>
           <button class="logout-btn" onclick="doSignOut()">ログアウト</button>
         </div>
       </div>
@@ -381,24 +388,30 @@ let membersMap   = { a:{name:'私',color:'#e2dc54'}, b:{name:'パートナー',c
 let unsubscribers = [];
 let obCreating   = false;
 
-/* ── Current month ── */
+/* ── Month state ── */
 const NOW = new Date();
-const CUR_Y = NOW.getFullYear(), CUR_M = NOW.getMonth()+1, TODAY = NOW.getDate();
-function mmStr(){ return String(CUR_M).padStart(2,'0'); }
-function periodLabel(){ return `${CUR_Y}年${CUR_M}月`; }
+const TODAY_Y = NOW.getFullYear(), TODAY_M = NOW.getMonth()+1, TODAY_D = NOW.getDate();
+let viewYear = TODAY_Y, viewMonth = TODAY_M;
+function viewPrefix(){ return `${viewYear}-${String(viewMonth).padStart(2,'0')}`; }
+function periodLabel(){ return `${viewYear}年${viewMonth}月`; }
 
 /* ── Firestore shorthand ── */
 const fsdb = () => firebase.firestore();
 
 /* ── Data helpers ── */
 function gfx(){
+  const vp = viewPrefix();
   return fx.filter(f=>f.on).map(f=>({
     id:'x'+f.id, amount:f.amount, cat:f.cat, note:f.name,
-    date:`${mmStr()}/${String(f.day).padStart(2,'0')}`,
+    date:`${vp}-${String(f.day).padStart(2,'0')}`,
     who:f.who, fixed:true
   }));
 }
-function all(){ return [...gfx(), ...ent]; }
+function monthEntries(){
+  const prefix = viewPrefix()+'-';
+  return ent.filter(e=>e.date && e.date.startsWith(prefix));
+}
+function all(){ return [...gfx(), ...monthEntries()]; }
 function pts(){ let a=0,b=0; all().forEach(e=>e.who==='a'?a+=e.amount:b+=e.amount); return{a,b,t:a+b}; }
 function cts(){ const t={}; all().forEach(e=>t[e.cat]=(t[e.cat]||0)+e.amount); return t; }
 
@@ -408,7 +421,7 @@ function upd(){
   const hsub=document.getElementById('hsub');
   if(hsub) hsub.innerHTML=`<span>${nameOf('a')} <b>${fmt(a)}</b></span><span>${nameOf('b')} <b>${fmt(b)}</b></span>`;
   const pb=document.getElementById('period-btn');
-  if(pb) pb.textContent=periodLabel()+' ▾';
+  if(pb) pb.textContent=periodLabel();
 }
 
 /* ── Screen management ── */
@@ -422,12 +435,16 @@ function showScreen(name){
 
 /* ── Calendar ── */
 function buildCalendar(){
-  const days = new Date(CUR_Y, CUR_M, 0).getDate();
-  const first = new Date(CUR_Y, CUR_M-1, 1).getDay();
+  const days = new Date(viewYear, viewMonth, 0).getDate();
+  const first = new Date(viewYear, viewMonth-1, 1).getDay();
+  const prefix = viewPrefix()+'-';
+  const isCurrentMonth = viewYear===TODAY_Y && viewMonth===TODAY_M;
   const dayMap={};
   all().forEach(e=>{
-    const p=e.date.split('/');
-    if(p.length===2){ const d=parseInt(p[1]); dayMap[d]=(dayMap[d]||0)+e.amount; }
+    if(e.date && e.date.startsWith(prefix)){
+      const d=parseInt(e.date.slice(8));
+      dayMap[d]=(dayMap[d]||0)+e.amount;
+    }
   });
   const{t}=pts();
   const heads=['日','月','火','水','木','金','土'].map(d=>`<span>${d}</span>`).join('');
@@ -435,7 +452,8 @@ function buildCalendar(){
   for(let i=0;i<first;i++) cells+=`<div class="cal-cell empty"></div>`;
   for(let d=1;d<=days;d++){
     const amt=dayMap[d], dow=(first+d-1)%7;
-    const cls=['cal-cell',d===TODAY?'today':'',d===selDay?'sel':'',dow===0?'sun':dow===6?'sat':''].filter(Boolean).join(' ');
+    const isToday=isCurrentMonth&&d===TODAY_D;
+    const cls=['cal-cell',isToday?'today':'',d===selDay?'sel':'',dow===0?'sun':dow===6?'sat':''].filter(Boolean).join(' ');
     cells+=`<div class="${cls}" onclick="K.selDay(${d})">
       <div class="cal-num">${d}</div>
       ${amt?`<div class="cal-amt">¥${Math.round(amt).toLocaleString('ja-JP')}</div>`:`<div style="height:11px"></div>`}
@@ -519,12 +537,12 @@ function buildCompare(){
 
 /* ── Renders ── */
 function rHome(){
-  const mm=mmStr();
-  const list=(selDay===null?all():all().filter(e=>e.date===`${mm}/${String(selDay).padStart(2,'0')}`))
+  const dayDate=selDay?`${viewPrefix()}-${String(selDay).padStart(2,'0')}`:null;
+  const list=(dayDate?all().filter(e=>e.date===dayDate):all())
     .sort((a,b)=>b.date.localeCompare(a.date));
   const total=list.reduce((s,e)=>s+e.amount,0);
   const hdr=selDay
-    ?`<div class="day-header">${CUR_M}月${selDay}日${list.length?' — '+fmt(total):''}</div>`
+    ?`<div class="day-header">${viewMonth}月${selDay}日${list.length?' — '+fmt(total):''}</div>`
     :`<div class="day-header">すべての記録</div>`;
   const empty=list.length?'':`<div style="text-align:center;padding:20px;color:var(--ink2);font-size:13px;background:rgba(255,255,255,.55);border-radius:16px">記録がありません</div>`;
   document.getElementById('t-home').innerHTML=buildCalendar()+buildMemoCards()+hdr+list.map((e,i)=>xCard(e,i,memos.length)).join('')+empty;
@@ -666,6 +684,14 @@ const K = {
     if(n==='home')rHome(); else if(n==='fixed')rFixed(); else if(n==='settle')rSettle(); else rMemo();
   },
   selDay(d){ selDay=selDay===d?null:d; rHome(); },
+  prevMonth(){
+    viewMonth--; if(viewMonth<1){viewMonth=12;viewYear--;} selDay=null;
+    upd(); if(currentTab==='home')rHome(); else if(currentTab==='settle')rSettle(); else if(currentTab==='fixed')rFixed();
+  },
+  nextMonth(){
+    viewMonth++; if(viewMonth>12){viewMonth=1;viewYear++;} selDay=null;
+    upd(); if(currentTab==='home')rHome(); else if(currentTab==='settle')rSettle(); else if(currentTab==='fixed')rFixed();
+  },
   openModal(){
     mP=myRole;
     rModal();
@@ -682,8 +708,8 @@ const K = {
     const amt=parseInt(document.getElementById('ma').value||0);
     if(!amt||amt<=0)return;
     const cat=document.getElementById('mc').value, note=document.getElementById('mn').value||cat;
-    const raw=document.getElementById('md').value, p=raw.split('-');
-    const date=p.length===3?`${p[1]}/${p[2]}`:(()=>{ const n=new Date(); return `${String(n.getMonth()+1).padStart(2,'0')}/${String(n.getDate()).padStart(2,'0')}`; })();
+    const raw=document.getElementById('md').value;
+    const date=raw||(()=>{ const n=new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`; })();
     if(householdId){
       fsdb().collection(`households/${householdId}/entries`).add({
         amount:amt, cat, note, date, who:mP,
