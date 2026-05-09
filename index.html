@@ -816,7 +816,7 @@ function subscribeToHousehold(){
 
 /* ── Auth ── */
 function signInWithGoogle(){
-  firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider())
+  firebase.auth().signInWithRedirect(new firebase.auth.GoogleAuthProvider())
     .catch(e=>{ console.error(e); alert('ログインに失敗しました。'); });
 }
 
@@ -976,8 +976,16 @@ const OB = {
 };
 
 /* ── App init ── */
-function initApp(){
+async function initApp(){
   firebase.initializeApp(firebaseConfig);
+
+  // リダイレクトログインの結果を先に処理する（Safari対応）
+  // これを await することで、onAuthStateChanged が確実にログイン済み状態で発火する
+  try {
+    await firebase.auth().getRedirectResult();
+  } catch(e){
+    console.error('Redirect result error:', e);
+  }
 
   firebase.auth().onAuthStateChanged(async user=>{
     if(!user){ showScreen('login'); return; }
@@ -1001,7 +1009,7 @@ function initApp(){
       showScreen('app');
       upd(); rHome();
     } catch(e){
-      console.error('Init error:',e);
+      console.error('Init error:', e);
       showScreen('login');
     }
   });
