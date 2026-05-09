@@ -353,6 +353,7 @@ function initialOf(role){ const n=nameOf(role); return n ? n[0] : (role==='a'?'�
 let userCats = ['食費','住居費','交通費','光熱費','娯楽','医療','その他'];
 let fx = [], ent = [], memos = [];
 let mT='expense', mP='a', mWho='a', selDay=null, currentTab='home';
+let editingEntId=null;
 
 /* ── Session State ── */
 const LS_KEY    = 'kakeibo_device_id';
@@ -475,6 +476,7 @@ function buildMemoCards(){
 function xCard(e,i,offset=0){
   const bg=col(offset+i), dark=isDk(bg), t=tc(bg);
   const avBg=`rgba(${dark?'255,255,255':'26,26,26'},.18)`;
+  const editBg=`rgba(${dark?'255,255,255':'26,26,26'},.15)`;
   return `<div class="xcard${dark?' dk':''}" style="background:${bg}">
     ${e.fixed?`<div class="ftag" style="color:${t}">↺ 固定費</div>`:''}
     <div class="xtop">
@@ -486,6 +488,7 @@ function xCard(e,i,offset=0){
       <div class="xname" style="color:${t}">${e.note}</div>
       <div class="xamt" style="color:${t}">－${fmt(e.amount)}</div>
     </div>
+    ${!e.fixed?`<div style="display:flex;justify-content:flex-end;margin-top:10px"><button onclick="K.editEnt('${e.id}')" style="background:${editBg};border:none;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:500;color:${t};cursor:pointer;font-family:inherit">編集</button></div>`:''}
   </div>`;
 }
 
@@ -631,10 +634,13 @@ function rFixed(){
     </div>`;
 }
 
-function rModal(){
-  const opts=userCats.map(c=>`<option>${c}</option>`).join('');
+function rModal(editEntry=null){
+  const isEdit=!!editEntry;
+  const opts=userCats.map(c=>`<option${editEntry&&editEntry.cat===c?' selected':''}>${c}</option>`).join('');
   const t=new Date(), todayStr=`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
   const nA=nameOf('a'), nB=nameOf('b');
+  const titleEl=document.querySelector('.modal-title');
+  if(titleEl) titleEl.textContent=isEdit?'記録を編集':'支出を登録';
   document.getElementById('modal-body').innerHTML=`
     <div class="ttog">
       <button class="${mT==='expense'?'se':''}" onclick="K.mt('expense')">支出</button>
@@ -644,17 +650,18 @@ function rModal(){
       <button class="${mP==='a'?'pa':''}" onclick="K.mp('a')">${nA}</button>
       <button class="${mP==='b'?'pb':''}" onclick="K.mp('b')">${nB}</button>
     </div>
-    <div class="irow"><label>金額（円）</label><input type="number" id="ma" placeholder="0" style="font-size:22px;font-weight:500;letter-spacing:-1px"></div>
+    <div class="irow"><label>金額（円）</label><input type="number" id="ma" placeholder="0" value="${isEdit?editEntry.amount:''}" style="font-size:22px;font-weight:500;letter-spacing:-1px"></div>
     <div class="g2">
-      <div class="irow"><label>日付</label><input type="date" id="md" value="${todayStr}"></div>
+      <div class="irow"><label>日付</label><input type="date" id="md" value="${isEdit?editEntry.date:todayStr}"></div>
       <div class="irow"><label>カテゴリ</label><select id="mc">${opts}</select></div>
     </div>
-    <div class="irow"><label>メモ</label><input type="text" id="mn" placeholder="内容を入力"></div>
-    <div class="irow">
+    <div class="irow"><label>メモ</label><input type="text" id="mn" placeholder="内容を入力" value="${isEdit?editEntry.note.replace(/"/g,'&quot;'):''}"></div>
+    ${!isEdit?`<div class="irow">
       <label>カテゴリを追加</label>
       <div class="cat-add-row"><input type="text" id="nc" placeholder="新しいカテゴリ名"><button onclick="K.addCat()">追加</button></div>
-    </div>
-    <button class="abtn" onclick="K.addEnt()">+ 登録する</button>`;
+    </div>`:''}
+    <button class="abtn" onclick="${isEdit?'K.updateEnt()':'K.addEnt()'}">+ ${isEdit?'更新する':'登録する'}</button>
+    ${isEdit?`<button class="abtn" style="background:var(--tang);margin-top:8px" onclick="K.delEntFromModal('${editEntry.id}')">削除する</button>`:''}`;
 }
 
 /* ── Controller ── */
@@ -675,6 +682,7 @@ const K = {
     upd(); if(currentTab==='home')rHome(); else if(currentTab==='settle')rSettle(); else if(currentTab==='fixed')rFixed();
   },
   openModal(){
+    editingEntId=null;
     mP=myRole;
     rModal();
     document.getElementById('modal').classList.add('open');
@@ -754,6 +762,38 @@ const K = {
     if(householdId){
       fsdb().doc(`households/${householdId}/memos/${id}`).delete();
     } else { memos=memos.filter(m=>m.id!==id); rMemo(); }
+  },
+
+  editEnt(id){
+    const e=ent.find(e=>e.id===id); if(!e)return;
+    editingEntId=id; mP=e.who;
+    rModal(e);
+    document.getElementById('modal').classList.add('open');
+    document.getElementById('backdrop').classList.add('open');
+  },
+
+  updateEnt(){
+    const id=editingEntId; if(!id)return;
+    const amt=parseInt(document.getElementById('ma').value||0); if(!amt||amt<=0)return;
+    const cat=document.getElementById('mc').value, note=document.getElementById('mn').value||cat;
+    const date=document.getElementById('md').value;
+    if(householdId){
+      fsdb().doc(`households/${householdId}/entries/${id}`).update({amount:amt,cat,note,date,who:mP});
+    } else {
+      const e=ent.find(e=>e.id===id);
+      if(e){e.amount=amt;e.cat=cat;e.note=note;e.date=date;e.who=mP;upd();if(currentTab==='home')rHome();if(currentTab==='settle')rSettle();}
+    }
+    editingEntId=null; K.closeModal();
+  },
+
+  delEntFromModal(id){
+    if(!confirm('この記録を削除しますか？'))return;
+    if(householdId){
+      fsdb().doc(`households/${householdId}/entries/${id}`).delete();
+    } else {
+      ent=ent.filter(e=>e.id!==id); upd(); if(currentTab==='home')rHome(); if(currentTab==='settle')rSettle();
+    }
+    editingEntId=null; K.closeModal();
   }
 };
 
@@ -873,15 +913,20 @@ function obStep1(){ return `
   ${obInviteTab==='invite' ? `
     <div class="ob-card" style="background:var(--lime)">
       <div style="font-size:11px;font-weight:600;color:var(--ink2);text-transform:uppercase;letter-spacing:.5px">招待コード</div>
-      <div class="ob-code">${INVITE_CODE||'生成中…'}</div>
-      <div style="font-size:12px;font-weight:400;color:var(--ink2);text-align:center">このコードをパートナーに送ってください</div>
+      <div class="ob-code" style="${INVITE_CODE?'':'font-size:18px;color:var(--ink2)'}">${INVITE_CODE||'未発行'}</div>
+      <div style="font-size:12px;font-weight:400;color:var(--ink2);text-align:center">${INVITE_CODE?'このコードをパートナーに送ってください':'下のボタンを押してコードを発行してください'}</div>
     </div>
+    ${INVITE_CODE?`
     <button class="ob-share-btn" onclick="OB.share()">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
       LINEやメッセージで送る
     </button>
     <button class="ob-btn" onclick="OB.next1()">パートナーが参加したら次へ</button>
     <button class="ob-btn-sub" onclick="OB.next1()">あとで招待する</button>
+    `:`
+    <button class="ob-btn" onclick="OB.issueInviteCode()">招待コードを発行する</button>
+    <button class="ob-btn-sub" onclick="OB.next1()">あとで招待する</button>
+    `}
   ` : `
     <div style="margin-bottom:16px">
       <div style="font-size:11px;font-weight:600;color:var(--ink2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">招待コードを入力</div>
@@ -969,6 +1014,26 @@ const OB = {
       await fsdb().doc(`households/${hId}`).update({members:firebase.firestore.FieldValue.arrayUnion(deviceId)});
       obSetStep(2);
     } catch(e){ console.error(e); alert('エラーが発生しました'); }
+  },
+
+  async issueInviteCode(){
+    const btns=document.querySelectorAll('#ob-body button');
+    btns.forEach(b=>{b.disabled=true;b.style.opacity='.5';});
+    try {
+      if(!householdId){
+        await OB._createHousehold();
+      } else {
+        const code=generateCode();
+        INVITE_CODE=code;
+        await fsdb().doc(`households/${householdId}`).update({inviteCode:code});
+        await fsdb().doc(`inviteCodes/${code}`).set({householdId});
+      }
+      obSetStep(1);
+    } catch(e){
+      console.error(e);
+      btns.forEach(b=>{b.disabled=false;b.style.opacity='1';});
+      alert('エラーが発生しました');
+    }
   },
 
   next1(){ obSetStep(2); },
