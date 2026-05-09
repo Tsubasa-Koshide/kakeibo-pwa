@@ -504,6 +504,12 @@ function xCard(e,i,offset=0){
   const bg=col(offset+i), dark=isDk(bg), t=tc(bg);
   const avBg=`rgba(${dark?'255,255,255':'26,26,26'},.18)`;
   const editBg=`rgba(${dark?'255,255,255':'26,26,26'},.15)`;
+  function whoBtn(role){
+    const on=e.who===role;
+    return `<div onclick="K.setWho('${e.id}','${role}')" style="display:flex;align-items:center;gap:4px;padding:5px 10px;border-radius:20px;cursor:pointer;background:${on?`rgba(${dark?'255,255,255':'26,26,26'},.25)`:`rgba(${dark?'255,255,255':'26,26,26'},.07)`};border:1.5px solid ${on?`rgba(${dark?'255,255,255':'26,26,26'},.35)`:'transparent'};transition:all .15s">
+      <span style="font-size:10px;font-weight:600;color:${t};opacity:${on?1:.45}">${nameOf(role)}</span>
+    </div>`;
+  }
   return `<div class="xcard${dark?' dk':''}" style="background:${bg}">
     ${e.fixed?`<div class="ftag" style="color:${t}">↺ 固定費</div>`:''}
     <div class="xtop">
@@ -515,7 +521,10 @@ function xCard(e,i,offset=0){
       <div class="xname" style="color:${t}">${e.note}</div>
       <div class="xamt" style="color:${t}">－${fmt(e.amount)}</div>
     </div>
-    ${!e.fixed?`<div style="display:flex;justify-content:flex-end;margin-top:10px"><button onclick="K.editEnt('${e.id}')" style="background:${editBg};border:none;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:500;color:${t};cursor:pointer;font-family:inherit">編集</button></div>`:''}
+    ${!e.fixed?`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+      <div style="display:flex;gap:5px">${whoBtn('a')}${whoBtn('b')}</div>
+      <button onclick="K.editEnt('${e.id}')" style="background:${editBg};border:none;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:500;color:${t};cursor:pointer;font-family:inherit">編集</button>
+    </div>`:''}
   </div>`;
 }
 
@@ -832,6 +841,15 @@ const K = {
     if(householdId){
       fsdb().doc(`households/${householdId}/memos/${id}`).delete();
     } else { memos=memos.filter(m=>m.id!==id); rMemo(); }
+  },
+
+  setWho(id, who){
+    const e=ent.find(e=>e.id===id); if(!e||e.who===who)return;
+    if(householdId){
+      fsdb().doc(`households/${householdId}/entries/${id}`).update({who});
+    } else {
+      e.who=who; upd(); if(currentTab==='home')rHome(); if(currentTab==='settle')rSettle();
+    }
   },
 
   editEnt(id){
