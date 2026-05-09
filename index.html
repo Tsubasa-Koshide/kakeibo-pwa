@@ -961,6 +961,7 @@ function doSignOut(){
 
 /* ── Onboarding ── */
 let obStep=0, obInviteTab='invite';
+let _restoreMembersData = {};
 
 function generateCode(){
   // 6桁の数字コード
@@ -1000,6 +1001,7 @@ function obStep1(){ return `
   <div class="ob-tab-row">
     <button class="ob-tab ${obInviteTab==='invite'?'on':''}" onclick="OB.invTab('invite')">招待する</button>
     <button class="ob-tab ${obInviteTab==='join'?'on':''}" onclick="OB.invTab('join')">コードで参加</button>
+    <button class="ob-tab ${obInviteTab==='restore'?'on':''}" onclick="OB.invTab('restore')">引き継ぎ</button>
   </div>
   ${obInviteTab==='invite' ? `
     <div class="ob-card" style="background:var(--lime)">
@@ -1018,13 +1020,24 @@ function obStep1(){ return `
     <button class="ob-btn" onclick="OB.issueInviteCode()">招待コードを発行する</button>
     <button class="ob-btn-sub" onclick="OB.next1()">あとで招待する</button>
     `}
-  ` : `
+  ` : obInviteTab==='join' ? `
     <div style="margin-bottom:16px">
       <div style="font-size:11px;font-weight:600;color:var(--ink2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">招待コードを入力</div>
       <input class="ob-input" id="ob-code" placeholder="123456" maxlength="6" type="number" inputmode="numeric" style="font-size:24px;font-weight:600;letter-spacing:8px;text-align:center">
     </div>
     <button class="ob-btn" onclick="OB.joinCode()">参加する</button>
     <button class="ob-btn-sub" onclick="OB.invTab('invite')">← 招待コードを送る</button>
+  ` : `
+    <div style="font-size:12px;color:var(--ink2);margin-bottom:14px;line-height:1.6">
+      アプリを再インストールしてデータが消えた場合は、別のデバイスの設定画面から招待コードを確認して入力してください。
+    </div>
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;font-weight:600;color:var(--ink2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">招待コードを入力</div>
+      <input class="ob-input" id="ob-restore-code" placeholder="123456" maxlength="6" type="number" inputmode="numeric" style="font-size:24px;font-weight:600;letter-spacing:8px;text-align:center">
+    </div>
+    <button class="ob-btn" id="restore-search-btn" onclick="OB.lookupRestore()">メンバーを検索</button>
+    <div id="restore-members"></div>
+    <button class="ob-btn-sub" onclick="OB.invTab('invite')">← 戻る</button>
   `}
 `;}
 
@@ -1138,6 +1151,66 @@ const OB = {
         ? 'Firestoreの書き込み権限がありません。\nFirebaseコンソール→Firestore→ルールを確認してください。\n\nエラー: '+e.message
         : 'エラーが発生しました\n'+e.message;
       alert(msg);
+    }
+  },
+
+  async lookupRestore(){
+    const c=document.getElementById('ob-restore-code');
+    const code=(c?c.value.trim():'');
+    if(!code||code.length<6){ if(c)c.style.background='rgba(244,92,39,.15)'; return; }
+    const btn=document.getElementById('restore-search-btn');
+    if(btn){ btn.disabled=true; btn.textContent='検索中…'; }
+    try {
+      const codeDoc=await fsdb().doc(`inviteCodes/${code}`).get();
+      if(!codeDoc.exists){
+        if(c)c.style.background='rgba(244,92,39,.15)';
+        alert('招待コードが見つかりません');
+        if(btn){ btn.disabled=false; btn.textContent='メンバーを検索'; }
+        return;
+      }
+      const hId=codeDoc.data().householdId;
+      const usersSnap=await fsdb().collection(`households/${hId}/users`).get();
+      const members=usersSnap.docs.map(d=>d.data());
+      _restoreMembersData={};
+      members.forEach(m=>{ _restoreMembersData[m.role]=m; });
+      const rm=document.getElementById('restore-members');
+      if(!members.length){
+        rm.innerHTML='<div style="text-align:center;color:var(--ink2);font-size:13px;padding:20px">メンバーが見つかりません</div>';
+        if(btn){ btn.disabled=false; btn.textContent='メンバーを検索'; }
+        return;
+      }
+      rm.innerHTML=`
+        <div style="font-size:12px;font-weight:600;color:var(--ink2);margin:16px 0 8px;text-transform:uppercase;letter-spacing:.4px">あなたはどちらですか？</div>
+        ${members.map(m=>`
+          <div onclick="OB._restoreAs('${hId}','${code}','${m.role}')" style="display:flex;align-items:center;gap:12px;padding:14px;background:rgba(26,26,26,.05);border-radius:14px;margin-bottom:8px;cursor:pointer">
+            <div style="width:40px;height:40px;border-radius:50%;background:${m.color||'#e2dc54'};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:${isDk(m.color||'#e2dc54')?'#fff':'#1A1A1A'};flex-shrink:0">${m.name?m.name[0]:'?'}</div>
+            <div>
+              <div style="font-size:15px;font-weight:600;color:var(--ink)">${m.name||'名前未設定'}</div>
+              <div style="font-size:11px;color:var(--ink2)">${m.role==='a'?'ホスト':'参加者'}</div>
+            </div>
+            <div style="margin-left:auto;font-size:22px;color:var(--ink2)">›</div>
+          </div>
+        `).join('')}
+      `;
+      if(btn){ btn.disabled=false; btn.textContent='メンバーを検索'; }
+    } catch(e){
+      console.error(e);
+      if(btn){ btn.disabled=false; btn.textContent='メンバーを検索'; }
+      alert('エラーが発生しました\n'+e.message);
+    }
+  },
+
+  async _restoreAs(hId, code, role){
+    const m=_restoreMembersData[role]||{};
+    myName=m.name||myName; myColor=m.color||myColor;
+    householdId=hId; INVITE_CODE=code; myRole=role;
+    try {
+      await fsdb().doc(`users/${deviceId}`).set({name:myName,color:myColor,deviceId,householdId:hId,role},{merge:true});
+      await fsdb().doc(`households/${hId}/users/${deviceId}`).set({name:myName,color:myColor,role,deviceId});
+      obSetStep(2);
+    } catch(e){
+      console.error(e);
+      alert('引き継ぎに失敗しました\n'+e.message);
     }
   },
 
