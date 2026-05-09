@@ -1205,6 +1205,10 @@ const OB = {
     myName=m.name||myName; myColor=m.color||myColor;
     householdId=hId; INVITE_CODE=code; myRole=role;
     try {
+      // 同じロールの古いドキュメントを全て削除して重複を防ぐ
+      const usersSnap=await fsdb().collection(`households/${hId}/users`).get();
+      const oldDocs=usersSnap.docs.filter(d=>d.data().role===role && d.id!==deviceId);
+      await Promise.all(oldDocs.map(d=>d.ref.delete()));
       await fsdb().doc(`users/${deviceId}`).set({name:myName,color:myColor,deviceId,householdId:hId,role},{merge:true});
       await fsdb().doc(`households/${hId}/users/${deviceId}`).set({name:myName,color:myColor,role,deviceId});
       obSetStep(2);
