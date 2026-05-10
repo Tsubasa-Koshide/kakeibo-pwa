@@ -376,9 +376,11 @@ function initialOf(role){ const n=nameOf(role); return n ? n[0] : (role==='a'?'�
 
 /* ── App State ── */
 let userCats = ['食費','住居費','交通費','光熱費','娯楽','医療','その他'];
+(()=>{ try{ const s=localStorage.getItem('kakeibo_cats'); if(s) userCats=JSON.parse(s); }catch(_){} })();
+function saveCats(){ try{ localStorage.setItem('kakeibo_cats',JSON.stringify(userCats)); }catch(_){} }
 let fx = [], ent = [], memos = [];
 let mT='expense', mP='a', mWho='a', selDay=null, currentTab='home';
-let editingEntId=null;
+let editingEntId=null, editingFxId=null;
 
 /* ── Session State ── */
 const LS_KEY    = 'kakeibo_device_id';
@@ -421,7 +423,16 @@ function monthEntries(){
   return ent.filter(e=>e.date && e.date.startsWith(prefix));
 }
 function all(){ return [...gfx(), ...monthEntries()]; }
-function pts(){ let a=0,b=0; all().forEach(e=>e.who==='a'?a+=e.amount:b+=e.amount); return{a,b,t:a+b}; }
+function pts(){
+  let pA=0,pB=0,owA=0,owB=0;
+  all().forEach(e=>{
+    const sp=e.splitA!=null&&e.splitB!=null;
+    if(e.who==='a')pA+=e.amount; else pB+=e.amount;
+    owA+=sp?e.splitA:e.amount/2;
+    owB+=sp?e.splitB:e.amount/2;
+  });
+  return{a:pA,b:pB,t:pA+pB,diff:pA-owA};
+}
 function cts(){ const t={}; all().forEach(e=>t[e.cat]=(t[e.cat]||0)+e.amount); return t; }
 
 function upd(){
@@ -570,12 +581,9 @@ function rHome(){
 }
 
 function rSettle(){
-  const ct=cts(), {a,b,t}=pts(), mx=Math.max(...Object.values(ct),1);
+  const ct=cts(), {a,b,t,diff}=pts(), mx=Math.max(...Object.values(ct),1);
   const pPct=t>0?Math.round(a/t*100):50;
-  const diff=a-t/2, amt=Math.abs(diff), bOwes=diff>0, bal=amt<1;
-  const cA={}, cB={};
-  all().forEach(e=>{ if(e.who==='a') cA[e.cat]=(cA[e.cat]||0)+e.amount; else cB[e.cat]=(cB[e.cat]||0)+e.amount; });
-  const allC=[...new Set([...Object.keys(cA),...Object.keys(cB)])];
+  const amt=Math.abs(diff), bOwes=diff>0, bal=amt<1;
   const nA=nameOf('a'), nB=nameOf('b');
   const catRows=Object.entries(ct).sort((x,y)=>y[1]-x[1]).map(([c,v])=>`
     <div class="crow"><div class="cdot" style="background:${getCatCol(c)}"></div><div class="cn">${c}</div>
@@ -588,23 +596,11 @@ function rSettle(){
       <div class="sd">${bal?'ふたりの負担は均等です':(bOwes?nB:nA)+'が'+(bOwes?nA:nB)+'に支払う'}</div>
     </div>
     <div class="pcards">
-      <div class="pcard pcard-a"><div class="pn">${nA}</div><div class="pv">${fmt(a)}</div><div class="pp">${pPct}%を負担</div></div>
-      <div class="pcard pcard-b"><div class="pn">${nB}</div><div class="pv">${fmt(b)}</div><div class="pp">${100-pPct}%を負担</div></div>
+      <div class="pcard pcard-a"><div class="pn">${nA}</div><div class="pv">${fmt(a)}</div><div class="pp">${pPct}%を支出</div></div>
+      <div class="pcard pcard-b"><div class="pn">${nB}</div><div class="pv">${fmt(b)}</div><div class="pp">${100-pPct}%を支出</div></div>
     </div>
     ${buildCompare()}
     <div class="ccard"><h3>カテゴリ別支出</h3>${catRows}</div>
-    <div class="ccard"><h3>誰が払ったか</h3>
-      ${allC.map(c=>`<div style="margin-bottom:10px">
-        <div style="display:flex;justify-content:space-between;margin-bottom:3px">
-          <span style="font-size:13px;font-weight:500;display:flex;align-items:center;gap:4px"><span style="width:7px;height:7px;border-radius:50%;background:${getCatCol(c)};display:inline-block"></span>${c}</span>
-          <span style="font-size:11px;color:var(--ink2)">${fmt((cA[c]||0)+(cB[c]||0))}</span>
-        </div>
-        <div style="display:flex;gap:12px;font-size:11px;font-weight:500">
-          <span style="color:var(--forest)">${nA}: ${cA[c]?fmt(cA[c]):'－'}</span>
-          <span style="color:var(--blue)">${nB}: ${cB[c]?fmt(cB[c]):'－'}</span>
-        </div>
-      </div>`).join('')}
-    </div>
     ${(()=>{
       const daysInMonth=new Date(viewYear,viewMonth,0).getDate();
       const isFutureMth=viewYear>TODAY_Y||(viewYear===TODAY_Y&&viewMonth>TODAY_M);
@@ -650,16 +646,19 @@ function rMemo(){
 
 function rFixed(){
   const ft=fx.filter(f=>f.on).reduce((s,f)=>s+f.amount,0);
-  const opts=userCats.map(c=>`<option>${c}</option>`).join('');
-  const dOpts=Array.from({length:28},(_,i)=>`<option value="${i+1}">${i+1}日</option>`).join('');
+  const opts=c=>userCats.map(u=>`<option${u===c?' selected':''}>${u}</option>`).join('');
+  const dOpts=d=>Array.from({length:28},(_,i)=>`<option value="${i+1}"${i+1===d?' selected':''}>${i+1}日</option>`).join('');
+  const ef=editingFxId?fx.find(f=>f.id===editingFxId):null;
   const items=fx.map((f,i)=>{
     const bg=col(i), dark=isDk(bg), t=tc(bg);
     const dbg=`rgba(${dark?'255,255,255':'26,26,26'},.15)`;
-    return `<div class="fxcard${f.on?'':' off'}" style="background:${bg}">
+    const isEditing=f.id===editingFxId;
+    return `<div class="fxcard${f.on?'':' off'}${isEditing?' fxcard-edit':''}" style="background:${bg}">
       <div class="fxicon" style="color:${t}">${FICON[f.cat]||'📦'}</div>
       <div class="fxmeta"><div class="fn" style="color:${t}">${f.name}</div><div class="fd" style="color:${t}">毎月${f.day}日 · ${nameOf(f.who)} · ${f.cat}</div></div>
       <div class="fxright"><div class="fxamt" style="color:${t}">${fmt(f.amount)}</div>
         <div class="fxact">
+          <button class="dbtn" onclick="K.editF('${f.id}')" style="background:${dbg};color:${t}">編集</button>
           <button class="dbtn" onclick="K.delF('${f.id}')" style="background:${dbg};color:${t}">削除</button>
           <button class="tsw ${f.on?'on':'off'}" onclick="K.togF('${f.id}')"></button>
         </div>
@@ -669,19 +668,21 @@ function rFixed(){
   document.getElementById('t-fixed').innerHTML=`
     <div class="istrip">↺ 固定費は毎月自動で計上されます。<b style="color:var(--ink);font-weight:600;margin-left:4px">今月: ${fmt(ft)}</b></div>
     ${items}
-    <div class="fbox">
-      <div class="ftitle">固定費を追加</div>
-      <div class="irow"><label>名前</label><input type="text" id="fn" placeholder="例：家賃、スマホ代"></div>
+    <div class="fbox" id="fx-form">
+      <div class="ftitle">${ef?'固定費を編集':'固定費を追加'}</div>
+      <div class="irow"><label>名前</label><input type="text" id="fn" placeholder="例：家賃、スマホ代" value="${ef?ef.name:''}"></div>
       <div class="g2">
-        <div class="irow"><label>金額（円）</label><input type="number" id="fa" placeholder="0"></div>
-        <div class="irow"><label>引落日</label><select id="fd">${dOpts}</select></div>
+        <div class="irow"><label>金額（円）</label><input type="number" id="fa" placeholder="0" value="${ef?ef.amount:''}"></div>
+        <div class="irow"><label>引落日</label><select id="fd">${dOpts(ef?ef.day:1)}</select></div>
       </div>
       <div class="g2">
-        <div class="irow"><label>カテゴリ</label><select id="fc">${opts}</select></div>
-        <div class="irow"><label>支払う人</label><select id="fp"><option value="a">${nameOf('a')}</option><option value="b">${nameOf('b')}</option></select></div>
+        <div class="irow"><label>カテゴリ</label><select id="fc">${opts(ef?ef.cat:'')}</select></div>
+        <div class="irow"><label>支払う人</label><select id="fp"><option value="a"${ef&&ef.who==='a'?' selected':''}>${nameOf('a')}</option><option value="b"${ef&&ef.who==='b'?' selected':''}>${nameOf('b')}</option></select></div>
       </div>
-      <button class="abtn" onclick="K.addF()">↺ 登録する</button>
+      <button class="abtn" onclick="${ef?'K.updateF()':'K.addF()'}">${ef?'↺ 更新する':'↺ 登録する'}</button>
+      ${ef?`<button class="abtn" style="background:rgba(26,26,26,.08);color:var(--ink);margin-top:6px" onclick="K.cancelEditF()">キャンセル</button>`:''}
     </div>`;
+  if(ef) document.getElementById('fx-form').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
 function rModal(editEntry=null){
@@ -713,7 +714,14 @@ function rModal(editEntry=null){
       <div class="cat-add-row"><input type="text" id="nc" placeholder="新しいカテゴリ名"><button onclick="K.addCat()">追加</button></div>
     </div>`:''}
     <button class="abtn" onclick="${isEdit?'K.updateEnt()':'K.addEnt()'}">+ ${isEdit?'更新する':'登録する'}</button>
-    ${isEdit?`<button class="abtn" style="background:var(--tang);margin-top:8px" onclick="K.delEntFromModal('${editEntry.id}')">削除する</button>`:''}`;
+    ${isEdit?`<button class="abtn" style="background:var(--tang);margin-top:8px" onclick="K.delEntFromModal('${editEntry.id}')">削除する</button>`:''}
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(26,26,26,.08)">
+      <div style="font-size:11px;font-weight:600;color:var(--ink2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.4px">個別負担額（任意・空欄なら均等割り）</div>
+      <div class="g2">
+        <div class="irow"><label>${nA}の負担</label><input type="number" id="msA" placeholder="均等" value="${isEdit&&editEntry.splitA!=null?editEntry.splitA:''}"></div>
+        <div class="irow"><label>${nB}の負担</label><input type="number" id="msB" placeholder="均等" value="${isEdit&&editEntry.splitB!=null?editEntry.splitB:''}"></div>
+      </div>
+    </div>`;
 }
 
 /* ── Modal value helpers ── */
@@ -722,16 +730,21 @@ function _saveModal(){
     amt:(document.getElementById('ma')||{}).value||'',
     date:(document.getElementById('md')||{}).value||'',
     note:(document.getElementById('mn')||{}).value||'',
-    cat:(document.getElementById('mc')||{}).value||''
+    cat:(document.getElementById('mc')||{}).value||'',
+    splitA:(document.getElementById('msA')||{}).value||'',
+    splitB:(document.getElementById('msB')||{}).value||''
   };
 }
 function _restoreModal(v){
   const ma=document.getElementById('ma'),md=document.getElementById('md');
   const mn=document.getElementById('mn'),mc=document.getElementById('mc');
+  const msA=document.getElementById('msA'),msB=document.getElementById('msB');
   if(ma&&v.amt) ma.value=v.amt;
   if(md&&v.date) md.value=v.date;
   if(mn) mn.value=v.note;
   if(mc&&v.cat) mc.value=v.cat;
+  if(msA&&v.splitA) msA.value=v.splitA;
+  if(msB&&v.splitB) msB.value=v.splitB;
 }
 
 /* ── Controller ── */
@@ -766,6 +779,7 @@ const K = {
     const el=document.getElementById('nc'), name=el.value.trim();
     if(!name||userCats.includes(name))return;
     userCats.push(name);
+    saveCats();
     const v=_saveModal();
     rModal();
     _restoreModal(v);
@@ -779,13 +793,15 @@ const K = {
     const cat=document.getElementById('mc').value, note=document.getElementById('mn').value||cat;
     const raw=document.getElementById('md').value;
     const date=raw||(()=>{ const n=new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`; })();
+    const sA=document.getElementById('msA')?.value, sB=document.getElementById('msB')?.value;
+    const splitData=sA!==''&&sA!=null&&sB!==''&&sB!=null?{splitA:parseFloat(sA),splitB:parseFloat(sB)}:{};
     if(householdId){
       fsdb().collection(`households/${householdId}/entries`).add({
-        amount:amt, cat, note, date, who:mP,
+        amount:amt, cat, note, date, who:mP, ...splitData,
         createdAt:firebase.firestore.FieldValue.serverTimestamp()
       });
     } else {
-      ent.push({id:'e'+Date.now(),amount:amt,cat,note,date,who:mP});
+      ent.push({id:'e'+Date.now(),amount:amt,cat,note,date,who:mP,...splitData});
       upd(); if(currentTab==='home')rHome(); if(currentTab==='settle')rSettle();
     }
     K.closeModal();
@@ -800,6 +816,37 @@ const K = {
     } else {
       fx.push({id:'f'+Date.now(),...data}); upd(); rFixed();
     }
+  },
+
+  editF(id){ editingFxId=id; rFixed(); },
+
+  updateF(){
+    const id=editingFxId; if(!id)return;
+    const name=document.getElementById('fn').value.trim(), amt=parseInt(document.getElementById('fa').value||0);
+    if(!name||!amt||amt<=0)return;
+    const data={name,amount:amt,cat:document.getElementById('fc').value,who:document.getElementById('fp').value,day:parseInt(document.getElementById('fd').value)};
+    if(householdId){
+      fsdb().doc(`households/${householdId}/fixedExpenses/${id}`).update(data);
+    } else {
+      const f=fx.find(f=>f.id===id); if(f){ Object.assign(f,data); upd(); }
+    }
+    editingFxId=null; rFixed();
+  },
+
+  cancelEditF(){ editingFxId=null; rFixed(); },
+
+  moveCat(name,dir){
+    const i=userCats.indexOf(name); if(i<0)return;
+    const j=dir==='up'?i-1:i+1;
+    if(j<0||j>=userCats.length)return;
+    [userCats[i],userCats[j]]=[userCats[j],userCats[i]];
+    saveCats(); rSettings();
+  },
+
+  delCat(name){
+    if(userCats.length<=1)return;
+    userCats=userCats.filter(c=>c!==name);
+    saveCats(); rSettings();
   },
 
   togF(id){
@@ -865,11 +912,13 @@ const K = {
     const amt=parseInt(document.getElementById('ma').value||0); if(!amt||amt<=0)return;
     const cat=document.getElementById('mc').value, note=document.getElementById('mn').value||cat;
     const date=document.getElementById('md').value;
+    const sA=document.getElementById('msA')?.value, sB=document.getElementById('msB')?.value;
+    const splitData=sA!==''&&sA!=null&&sB!==''&&sB!=null?{splitA:parseFloat(sA),splitB:parseFloat(sB)}:{splitA:null,splitB:null};
     if(householdId){
-      fsdb().doc(`households/${householdId}/entries/${id}`).update({amount:amt,cat,note,date,who:mP});
+      fsdb().doc(`households/${householdId}/entries/${id}`).update({amount:amt,cat,note,date,who:mP,...splitData});
     } else {
       const e=ent.find(e=>e.id===id);
-      if(e){e.amount=amt;e.cat=cat;e.note=note;e.date=date;e.who=mP;upd();if(currentTab==='home')rHome();if(currentTab==='settle')rSettle();}
+      if(e){Object.assign(e,{amount:amt,cat,note,date,who:mP,...splitData});upd();if(currentTab==='home')rHome();if(currentTab==='settle')rSettle();}
     }
     editingEntId=null; K.closeModal();
   },
@@ -1275,6 +1324,17 @@ function rSettings(){
     <div class="set-card" style="padding:0 16px">${memberCards}</div>
     `:''}
 
+    <div class="set-section">カテゴリ管理</div>
+    <div class="set-card" style="padding:0 16px">
+      ${userCats.map((c,i)=>`
+      <div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid rgba(26,26,26,.06)">
+        <div style="flex:1;font-size:14px;font-weight:500;color:var(--ink)">${c}</div>
+        <button onclick="K.moveCat('${c}','up')" style="background:none;border:none;cursor:pointer;color:var(--ink2);font-size:16px;padding:4px 6px;${i===0?'opacity:.25;pointer-events:none':''}">↑</button>
+        <button onclick="K.moveCat('${c}','down')" style="background:none;border:none;cursor:pointer;color:var(--ink2);font-size:16px;padding:4px 6px;${i===userCats.length-1?'opacity:.25;pointer-events:none':''}">↓</button>
+        <button onclick="K.delCat('${c}')" style="background:rgba(244,92,39,.1);color:#f45c27;border:none;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer">削除</button>
+      </div>`).join('')}
+    </div>
+
     <div class="set-section">パートナーを招待</div>
     <div class="set-card">
       ${INVITE_CODE?`
@@ -1424,7 +1484,24 @@ async function initApp(){
 
 /* ── Service Worker ── */
 if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>{ navigator.serviceWorker.register('/service-worker.js'); });
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('/service-worker.js').then(reg=>{
+      // 新しいSWが見つかったらskipWaitingを促す
+      reg.addEventListener('updatefound',()=>{
+        const sw=reg.installing;
+        sw.addEventListener('statechange',()=>{
+          if(sw.state==='activated'&&navigator.serviceWorker.controller){
+            window.location.reload();
+          }
+        });
+      });
+    });
+    // controllerchangeでリロード（無限ループ防止フラグ付き）
+    let refreshing=false;
+    navigator.serviceWorker.addEventListener('controllerchange',()=>{
+      if(!refreshing){ refreshing=true; window.location.reload(); }
+    });
+  });
 }
 
 initApp();
