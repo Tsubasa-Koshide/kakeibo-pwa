@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kakeibo-v3';
+const CACHE_NAME = 'kakeibo-v4';
 const STATIC_ASSETS = [
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'
 ];
@@ -14,7 +14,12 @@ self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
       Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    )
+    ).then(() => {
+      // 新しいSWがアクティブになったら全クライアントを強制リロード
+      return self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
+        clients.forEach(client => client.navigate(client.url));
+      });
+    })
   );
   self.clients.claim();
 });
@@ -22,8 +27,8 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
-  // index.html / ルートは常にネットワークから取得（更新を即反映）
-  if (url.pathname === '/' || url.pathname === '/index.html') {
+  // HTMLページ（ルートまたは .html）は常にネットワーク優先
+  if (url.pathname.endsWith('/') || url.pathname.endsWith('.html')) {
     event.respondWith(
       fetch(event.request)
         .then(response => {
@@ -31,7 +36,7 @@ self.addEventListener('fetch', event => {
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
           return response;
         })
-        .catch(() => caches.match(event.request).then(c => c || caches.match('/index.html')))
+        .catch(() => caches.match(event.request))
     );
     return;
   }
@@ -45,7 +50,7 @@ self.addEventListener('fetch', event => {
         const clone = response.clone();
         caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
         return response;
-      }).catch(() => caches.match('/index.html'));
+      });
     })
   );
 });
