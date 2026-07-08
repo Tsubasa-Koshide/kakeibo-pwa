@@ -363,7 +363,6 @@ const COLS = ['#e2dc54','#dfefca','#add0ee','#d1c4e9','#f45c27','#6d2d59','#032f
 const DK   = ['#f45c27','#6d2d59','#032f98','#266433'];
 const CAT_COL = {食費:'#e2dc54',住居費:'#add0ee',交通費:'#f45c27',光熱費:'#266433',娯楽:'#d1c4e9',医療:'#6d2d59',その他:'#dfefca'};
 const FICON = {食費:'🍽',住居費:'🏠',交通費:'🚃',光熱費:'💡',娯楽:'🎵',医療:'💊',その他:'📦'};
-const LAST_MONTH = {食費:9000,交通費:3000,娯楽:12000,医療:0,その他:2000};
 
 const fmt  = n => '¥' + Math.round(n).toLocaleString('ja-JP');
 const isDk = c => DK.includes(c);
@@ -541,16 +540,27 @@ function xCard(e,i,offset=0){
 
 /* ── Compare ── */
 function buildCompare(){
-  const thisCats={}; ent.forEach(e=>thisCats[e.cat]=(thisCats[e.cat]||0)+e.amount);
+  // 表示中の月と前月の変動費（固定費は除く）をカテゴリ別に集計
+  const thisPrefix = viewPrefix()+'-';
+  let ly = viewYear, lm = viewMonth-1;
+  if(lm<1){ lm=12; ly--; }
+  const lastPrefix = `${ly}-${String(lm).padStart(2,'0')}-`;
+
+  const thisCats={}, lastCats={};
+  ent.forEach(e=>{
+    if(!e.date) return;
+    if(e.date.startsWith(thisPrefix)) thisCats[e.cat]=(thisCats[e.cat]||0)+e.amount;
+    else if(e.date.startsWith(lastPrefix)) lastCats[e.cat]=(lastCats[e.cat]||0)+e.amount;
+  });
   const thisTotal=Object.values(thisCats).reduce((a,b)=>a+b,0);
-  const lastTotal=Object.values(LAST_MONTH).reduce((a,b)=>a+b,0);
+  const lastTotal=Object.values(lastCats).reduce((a,b)=>a+b,0);
   const delta=thisTotal-lastTotal, isUp=delta>0, isFlat=delta===0;
-  const pct=lastTotal>0?Math.round(Math.abs(delta)/lastTotal*100):0;
+  const pct=lastTotal>0?Math.round(Math.abs(delta)/lastTotal*100):(thisTotal>0?100:0);
   const deltaLabel=(isFlat?'±':isUp?'▲':'▼')+fmt(Math.abs(delta));
-  const allCats=[...new Set([...Object.keys(thisCats),...Object.keys(LAST_MONTH)])];
-  const maxAmt=Math.max(...allCats.map(c=>Math.max(thisCats[c]||0,LAST_MONTH[c]||0)),1);
+  const allCats=[...new Set([...Object.keys(thisCats),...Object.keys(lastCats)])];
+  const maxAmt=Math.max(...allCats.map(c=>Math.max(thisCats[c]||0,lastCats[c]||0)),1);
   const rows=allCats.map(c=>{
-    const cur=thisCats[c]||0, last=LAST_MONTH[c]||0, d=cur-last;
+    const cur=thisCats[c]||0, last=lastCats[c]||0, d=cur-last;
     const arrow=d>0?'↑':d<0?'↓':'→', arrowCls=d>0?'up':d<0?'dn':'flat';
     return `<div class="cat-compare-row">
       <div class="cc-name">${c}</div>
@@ -563,7 +573,7 @@ function buildCompare(){
     <h3>先月との変動費比較</h3>
     <div class="compare-hero"><div class="ch-amt">${fmt(thisTotal)}</div><div class="ch-delta ${isFlat?'flat':isUp?'up':'dn'}">${deltaLabel}（${pct}%）</div></div>
     <div class="compare-sub">先月の変動費 ${fmt(lastTotal)} との比較</div>
-    ${rows}
+    ${rows||'<div style="font-size:12px;color:var(--ink2);margin-top:8px">まだ変動費の記録がありません</div>'}
   </div>`;
 }
 
