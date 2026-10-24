@@ -522,6 +522,7 @@ function xCard(e,i,offset=0){
   }
   return `<div class="xcard${dark?' dk':''}" style="background:${bg}">
     ${e.fixed?`<div class="ftag" style="color:${t}">↺ 固定費</div>`:''}
+    ${e.splitA!=null&&e.splitB!=null?`<div class="ftag" style="color:${t}">⚖ ${nameOf('a')} ${fmt(e.splitA)} / ${nameOf('b')} ${fmt(e.splitB)}</div>`:''}
     <div class="xtop">
       <div class="xav" style="background:${avBg};color:${t}">${initialOf(e.who)}</div>
       <div class="xday" style="color:${t}">${e.date}</div>
@@ -726,7 +727,8 @@ function rModal(editEntry=null){
     <button class="abtn" onclick="${isEdit?'K.updateEnt()':'K.addEnt()'}">+ ${isEdit?'更新する':'登録する'}</button>
     ${isEdit?`<button class="abtn" style="background:var(--tang);margin-top:8px" onclick="K.delEntFromModal('${editEntry.id}')">削除する</button>`:''}
     <div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(26,26,26,.08)">
-      <div style="font-size:11px;font-weight:600;color:var(--ink2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.4px">個別負担額（任意・空欄なら均等割り）</div>
+      <div style="font-size:11px;font-weight:600;color:var(--ink2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">個別負担額（任意）</div>
+      <div style="font-size:11px;color:var(--ink3);margin-bottom:10px;line-height:1.5">空欄なら均等割り。片方だけ入力すると、もう片方は自動で（金額 − 入力値）になります。</div>
       <div class="g2">
         <div class="irow"><label>${nA}の負担</label><input type="number" id="msA" placeholder="均等" value="${isEdit&&editEntry.splitA!=null?editEntry.splitA:''}"></div>
         <div class="irow"><label>${nB}の負担</label><input type="number" id="msB" placeholder="均等" value="${isEdit&&editEntry.splitB!=null?editEntry.splitB:''}"></div>
@@ -755,6 +757,20 @@ function _restoreModal(v){
   if(mc&&v.cat) mc.value=v.cat;
   if(msA&&v.splitA) msA.value=v.splitA;
   if(msB&&v.splitB) msB.value=v.splitB;
+}
+
+// 個別負担欄から splitA/splitB を算出
+// - 両方入力 → そのまま使う
+// - 片方だけ入力 → 残りを amount - 入力値 として自動補完
+// - どちらも空 → 均等割り（null, null を返す）
+function _resolveSplit(amount){
+  const rawA=document.getElementById('msA')?.value, rawB=document.getElementById('msB')?.value;
+  const hasA=rawA!==''&&rawA!=null, hasB=rawB!==''&&rawB!=null;
+  if(!hasA&&!hasB) return {splitA:null,splitB:null};
+  const a=hasA?parseFloat(rawA):null, b=hasB?parseFloat(rawB):null;
+  if(hasA&&hasB) return {splitA:isNaN(a)?0:a, splitB:isNaN(b)?0:b};
+  if(hasA) return {splitA:isNaN(a)?0:a, splitB:Math.max(0, amount-(isNaN(a)?0:a))};
+  return {splitA:Math.max(0, amount-(isNaN(b)?0:b)), splitB:isNaN(b)?0:b};
 }
 
 /* ── Controller ── */
@@ -803,8 +819,7 @@ const K = {
     const cat=document.getElementById('mc').value, note=document.getElementById('mn').value||cat;
     const raw=document.getElementById('md').value;
     const date=raw||(()=>{ const n=new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`; })();
-    const sA=document.getElementById('msA')?.value, sB=document.getElementById('msB')?.value;
-    const splitData=sA!==''&&sA!=null&&sB!==''&&sB!=null?{splitA:parseFloat(sA),splitB:parseFloat(sB)}:{};
+    const splitData=_resolveSplit(amt);
     if(householdId){
       fsdb().collection(`households/${householdId}/entries`).add({
         amount:amt, cat, note, date, who:mP, ...splitData,
@@ -922,8 +937,8 @@ const K = {
     const amt=parseInt(document.getElementById('ma').value||0); if(!amt||amt<=0)return;
     const cat=document.getElementById('mc').value, note=document.getElementById('mn').value||cat;
     const date=document.getElementById('md').value;
-    const sA=document.getElementById('msA')?.value, sB=document.getElementById('msB')?.value;
-    const splitData=sA!==''&&sA!=null&&sB!==''&&sB!=null?{splitA:parseFloat(sA),splitB:parseFloat(sB)}:{splitA:null,splitB:null};
+    const resolved=_resolveSplit(amt);
+    const splitData=resolved.splitA!=null?resolved:{splitA:null,splitB:null};
     if(householdId){
       fsdb().doc(`households/${householdId}/entries/${id}`).update({amount:amt,cat,note,date,who:mP,...splitData});
     } else {
